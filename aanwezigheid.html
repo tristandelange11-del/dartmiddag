@@ -1,0 +1,373 @@
+<title>Dartmiddag Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Figtree:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: één kolom. Stap 1 kies je naam, stap 2 aanwezig of afwezig, stap 3 gooien of boze darter. Onderaan de gedeelde stand. Bewust één donkere kroeglook. */
+:root{
+  --bg:#0F2B22; --deep:#0B211A; --panel:#153A2E; --line:#3F6B58; --cream:#F4EAD0; --muted:#B7C9BE;
+  --amber:#F5B02E; --ink:#14110F; --yes:#8FE0AE; --no:#FF8A98;
+  --display:'Bowlby One','Arial Black',sans-serif; --body:'Figtree',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--cream);font-family:var(--body);font-size:18px;line-height:1.5;padding-inline:16px;padding-block:40px 72px}
+main{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{margin:0;font-weight:800;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(40px,10vw,64px);line-height:1;margin:10px 0 12px;text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.1;margin:0}
+.where{margin:0;color:var(--muted)}
+.note{margin:0;color:var(--muted);font-size:16px}
+a{color:var(--amber);font-weight:800}
+.names{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+button{min-height:48px;padding:0 18px;border-radius:999px;border:2px solid var(--cream);background:transparent;color:var(--cream);font:800 17px var(--body);cursor:pointer}
+button:hover{background:rgba(244,234,208,.12)}
+button:focus-visible,a:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+button[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--ink)}
+.names button{font-family:var(--display);font-weight:400;font-size:20px;min-height:56px}
+.names button .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--line)}
+.names button[data-s="ja"] .dot{background:var(--yes)} .names button[data-s="nee"] .dot{background:var(--no)}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.b-ja[aria-pressed="true"]{background:var(--yes)} .b-nee[aria-pressed="true"]{background:var(--no)}
+.primary{background:var(--amber);color:var(--ink);border-color:var(--ink);box-shadow:0 4px 0 var(--ink);min-height:64px;font-size:24px;width:100%}
+.primary:hover{background:var(--amber);transform:translateY(-2px)}
+.primary:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+svg{display:block}
+#board{width:100%;max-width:520px;height:auto;margin-inline:auto}
+.last{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 18px;background:var(--deep);border:2px solid var(--amber);border-radius:18px;padding:14px 20px}
+.last .big{font-family:var(--display);font-size:52px;line-height:1;color:var(--amber)}
+.lbl{font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.stand{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.stand li{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+.stand li[data-s="ja"]{border-color:var(--yes)} .stand li[data-s="nee"]{border-color:var(--no)}
+.stand li[data-loser="1"]{border-color:#E0394D;background:rgba(224,57,77,.18)}
+.stand .n{font-family:var(--display);font-size:22px;flex:1 1 120px;min-width:0;overflow-wrap:anywhere}
+.stand .t{font-weight:700;font-size:16px;color:var(--muted);text-align:right}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{border:2px solid var(--ink);border-radius:999px;padding:4px 14px;font-weight:800;font-size:15px;color:var(--ink)}
+.pill.yes{background:var(--yes)} .pill.no{background:var(--no)} .pill.open{background:var(--cream)}
+.result{background:var(--cream);color:var(--ink);border:3px solid var(--ink);border-radius:20px;padding:22px;box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column;gap:8px}
+.result .who{font-family:var(--display);font-size:clamp(36px,9vw,56px);line-height:1;overflow-wrap:anywhere}
+.result .k{font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#B31C30}
+.warn{background:var(--panel);border:2px dashed var(--amber);border-radius:14px;padding:14px 16px;margin:0;font-size:16px}
+.linkbtn{background:none;border:none;color:var(--muted);text-decoration:underline;font:700 15px var(--body);min-height:40px;padding:0 4px}
+.linkbtn:hover{background:none;color:var(--cream)}
+
+/* Boze darter */
+.angry{display:flex;flex-direction:column;align-items:center;gap:6px}
+.angry svg{width:min(260px,70vw);height:auto;animation:shake .16s linear infinite}
+.angry .face{animation:flush 1.2s ease-in-out infinite alternate}
+.angry .steam{animation:steam 1.1s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.angry .steam.s2{animation-delay:.35s} .angry .steam.s3{animation-delay:.7s}
+.angry .brow{animation:brow .5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+.angry .mouth{animation:yell .22s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+.bubble{background:var(--cream);color:var(--ink);border:3px solid var(--ink);border-radius:18px;padding:12px 18px;font-family:var(--display);font-size:clamp(22px,6vw,30px);line-height:1.1;text-align:center;box-shadow:5px 5px 0 var(--ink);animation:pop .4s ease-out}
+@keyframes shake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(3px,-2px) rotate(1deg)}50%{transform:translate(-3px,2px) rotate(-1deg)}75%{transform:translate(2px,3px) rotate(.6deg)}100%{transform:translate(0,0) rotate(0)}}
+@keyframes flush{from{fill:#E9A27A}to{fill:#E0394D}}
+@keyframes steam{from{transform:translateY(8px) scale(.5);opacity:.9}to{transform:translateY(-34px) scale(1.5);opacity:0}}
+@keyframes brow{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+@keyframes yell{from{transform:scaleY(.7)}to{transform:scaleY(1.15)}}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.dart-in{animation:dartin .28s ease-out;transform-origin:0 0}
+@keyframes dartin{from{transform:scale(2.6);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.angry svg,.angry .face,.angry .steam,.angry .brow,.angry .mouth,.bubble,.dart-in{animation:none}}
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">Dartmiddag</p>
+    <h1>Wie betaalt het eerste rondje?</h1>
+    <p class="where">Zaterdag 10 oktober om 14:00 bij Big Ben in Leeuwarden. Eigen pijlen mee.</p>
+    <p class="note" style="margin-top:8px"><a href="https://claude.ai/artifact/FATn52VjeZ9rPQyE94DsD8">Naar de uitnodiging en de huisregels</a></p>
+  </header>
+
+  <p class="warn" id="warn" hidden>Live delen werkt in deze weergave niet. Je keuzes en worpen worden niet voor anderen opgeslagen.</p>
+
+  <section aria-labelledby="h-naam">
+    <h2 id="h-naam">1. Wie ben jij?</h2>
+    <div class="names" id="names"></div>
+  </section>
+
+  <section id="me-panel" hidden aria-labelledby="h-me">
+    <h2 id="h-me">2. Kom je?</h2>
+    <div class="row" id="att-btns">
+      <button type="button" class="b-ja" id="b-ja">Ik kom</button>
+      <button type="button" class="b-nee" id="b-nee">Ik kan niet</button>
+    </div>
+    <div id="me-body" aria-live="polite" style="display:flex;flex-direction:column;gap:16px"></div>
+  </section>
+
+  <section aria-labelledby="h-stand">
+    <h2 id="h-stand">De stand</h2>
+    <div class="pills" id="pills" aria-live="polite"></div>
+    <div id="result"></div>
+    <ul class="stand" id="stand"></ul>
+  </section>
+
+  <section>
+    <p class="note">Elke speler gooit één pijl op zijn eigen telefoon. De laagste score betaalt. Bij gelijkstand gooien alleen de laagste scores nog eens.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var PEOPLE = [
+    { id: 'mart', name: 'Mart' }, { id: 'stefan', name: 'Stefan' }, { id: 'tristan', name: 'Tristan' },
+    { id: 'niels', name: 'Niels' }, { id: 'dennis', name: 'Dennis' }, { id: 'dani', name: 'Dani' }
+  ];
+  var COLORS = { mart: '#F5B02E', stefan: '#19B5D4', tristan: '#E040FB', niels: '#FFFFFF', dennis: '#FF7A00', dani: '#6F95FF' };
+  var ORDER = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+  var SHOUTS = ['WAAR BEN JIJ?!', 'ABSOLUTE SCHANDE!', 'IK HEB MIJN PIJLEN GESLEEPT!', 'ZATERDAG 14:00. BIG BEN. WAAR BEN JE?!', 'DE PIJLEN STAAN KLAAR EN JIJ NIET!'];
+
+  var data = {};      // id -> {status, throws:[]}
+  var coll = null;
+  var me = null;
+  try { me = localStorage.getItem('dm-me'); } catch (e) {}
+  if (!PEOPLE.some(function (p) { return p.id === me; })) me = null;
+  var shout = SHOUTS[Math.floor(Math.random() * SHOUTS.length)];
+  var aim = { x: 220, y: 220 }, t0 = performance.now(), raf = 0, lastThrow = null, resetArmed = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function statusOf(id) { return (data[id] && data[id].status) || 'open'; }
+  function throwsOf(id) { return (data[id] && data[id].throws) || []; }
+  function personOf(id) { return PEOPLE.filter(function (p) { return p.id === id; })[0]; }
+
+  /* ---------- spelverloop ---------- */
+  function resolve() {
+    var cand = PEOPLE.filter(function (p) { return statusOf(p.id) === 'ja'; }).map(function (p) { return p.id; });
+    if (cand.length < 1) return { phase: 'few', round: 0, cand: cand };
+    var r = 0;
+    for (var guard = 0; guard < 50; guard++) {
+      var missing = cand.filter(function (id) { return !throwsOf(id)[r]; });
+      if (missing.length) return { phase: 'throwing', round: r, cand: cand, missing: missing };
+      if (cand.length < 2) return { phase: 'alone', round: r, cand: cand };
+      var min = Math.min.apply(null, cand.map(function (id) { return throwsOf(id)[r].score; }));
+      var losers = cand.filter(function (id) { return throwsOf(id)[r].score === min; });
+      if (losers.length === 1) return { phase: 'done', round: r, cand: cand, loser: losers[0] };
+      cand = losers; r++;
+    }
+    return { phase: 'few', round: 0, cand: [] };
+  }
+
+  function hit(x, y) {
+    var dx = x - 220, dy = y - 220, r = Math.hypot(dx, dy);
+    if (r > 180) return { score: 0, label: 'Mis', calc: 'Naast het bord = 0' };
+    if (r <= 6.7) return { score: 50, label: 'Bullseye', calc: 'Roos = 50' };
+    if (r <= 16.8) return { score: 25, label: 'Bull', calc: 'Buitenste roos = 25' };
+    var ang = Math.atan2(dx, -dy) * 180 / Math.PI; ang = ((ang % 360) + 360) % 360;
+    var num = ORDER[Math.floor(((ang + 9) % 360) / 18)];
+    if (r >= 171.5) return { score: num * 2, label: 'Dubbel ' + num, calc: '2 × ' + num + ' = ' + num * 2 };
+    if (r >= 104.8 && r <= 113.3) return { score: num * 3, label: 'Triple ' + num, calc: '3 × ' + num + ' = ' + num * 3 };
+    return { score: num, label: 'Enkel ' + num, calc: 'Enkel ' + num + ' = ' + num };
+  }
+  function aimAt(t) {
+    return { x: 220 + 138 * Math.sin(t * 1.21) + 42 * Math.sin(t * 2.93 + 0.7), y: 220 + 138 * Math.sin(t * 1.57 + 1.1) + 42 * Math.cos(t * 2.31) };
+  }
+
+  /* ---------- opslag ---------- */
+  function write(id, patch) {
+    var cur = data[id] || { status: 'open', throws: [] };
+    var next = { name: personOf(id).name, status: patch.status || cur.status || 'open', throws: patch.throws || cur.throws || [] };
+    data[id] = next;
+    render();
+    if (coll) coll.doc(id).set(next).catch(function () { $('warn').hidden = false; });
+  }
+  function chooseStatus(val) {
+    if (!me) return;
+    write(me, { status: statusOf(me) === val ? 'open' : val });
+  }
+  function doThrow() {
+    var g = resolve();
+    if (!me || g.phase !== 'throwing' || g.missing.indexOf(me) < 0) return;
+    var x = aim.x + (Math.random() - 0.5) * 14, y = aim.y + (Math.random() - 0.5) * 14;
+    var h = hit(x, y); h.x = +x.toFixed(1); h.y = +y.toFixed(1);
+    lastThrow = h;
+    write(me, { throws: throwsOf(me).concat([h]) });
+  }
+
+  /* ---------- bord ---------- */
+  function P(r, a) { var rad = a * Math.PI / 180; return (220 + r * Math.sin(rad)).toFixed(2) + ' ' + (220 - r * Math.cos(rad)).toFixed(2); }
+  function ring(r1, r2, a1, a2) {
+    return 'M ' + P(r2, a1) + ' A ' + r2 + ' ' + r2 + ' 0 0 1 ' + P(r2, a2) + ' L ' + P(r1, a2) + ' A ' + r1 + ' ' + r1 + ' 0 0 0 ' + P(r1, a1) + ' Z';
+  }
+  function boardSvg() {
+    var s = '<svg id="board" viewBox="0 0 440 440" role="img" aria-label="Dartbord"><circle cx="220" cy="220" r="214" fill="#14110F" stroke="#F5B02E" stroke-width="4"/><circle cx="220" cy="220" r="181" fill="#0A0A0A"/>';
+    for (var i = 0; i < 20; i++) {
+      var a1 = i * 18 - 9, a2 = i * 18 + 9, even = i % 2 === 0;
+      var single = even ? '#17140F' : '#EFE3C2', bright = even ? '#C8233B' : '#1F8A5B';
+      [[16.8, 104.8, single], [104.8, 113.3, bright], [113.3, 171.5, single], [171.5, 180, bright]].forEach(function (q) {
+        s += '<path d="' + ring(q[0], q[1], a1, a2) + '" fill="' + q[2] + '" stroke="#0A0A0A" stroke-width="0.8"/>';
+      });
+      var rad = i * 18 * Math.PI / 180;
+      s += '<text x="' + (220 + 197 * Math.sin(rad)).toFixed(1) + '" y="' + (220 - 197 * Math.cos(rad)).toFixed(1) + '" text-anchor="middle" dominant-baseline="central" style="font:800 16px Figtree,sans-serif;fill:#F4EAD0">' + ORDER[i] + '</text>';
+    }
+    s += '<circle cx="220" cy="220" r="16.8" fill="#1F8A5B" stroke="#0A0A0A" stroke-width="0.8"/><circle cx="220" cy="220" r="6.7" fill="#C8233B" stroke="#0A0A0A" stroke-width="0.8"/>';
+    s += '<g id="darts"></g>';
+    s += '<g id="cross" style="pointer-events:none" visibility="hidden"><circle r="15" fill="none" stroke="#14110F" stroke-width="7"/><line x1="-26" y1="0" x2="26" y2="0" stroke="#14110F" stroke-width="7"/><line x1="0" y1="-26" x2="0" y2="26" stroke="#14110F" stroke-width="7"/><circle r="15" fill="none" stroke="#F5B02E" stroke-width="3"/><line x1="-26" y1="0" x2="26" y2="0" stroke="#F5B02E" stroke-width="3"/><line x1="0" y1="-26" x2="0" y2="26" stroke="#F5B02E" stroke-width="3"/></g></svg>';
+    return s;
+  }
+  function drawDarts(round) {
+    var g = $('darts'); if (!g) return;
+    var s = '';
+    PEOPLE.forEach(function (p) {
+      var t = throwsOf(p.id)[round];
+      if (!t) return;
+      var mine = lastThrow && p.id === me && t.x === lastThrow.x && t.y === lastThrow.y;
+      s += '<g transform="translate(' + t.x + ' ' + t.y + ')"><g' + (mine ? ' class="dart-in"' : '') + '><circle r="10" fill="' + COLORS[p.id] + '" stroke="#14110F" stroke-width="2.5"/><text y="0.5" text-anchor="middle" dominant-baseline="central" style="font:800 11px Figtree,sans-serif;fill:#14110F">' + p.name.charAt(0) + '</text></g></g>';
+    });
+    g.innerHTML = s;
+  }
+  function loop(ts) {
+    raf = requestAnimationFrame(loop);
+    var c = $('cross');
+    if (!c || c.getAttribute('visibility') !== 'visible') return;
+    aim = aimAt((ts - t0) / 1000);
+    c.setAttribute('transform', 'translate(' + aim.x.toFixed(1) + ' ' + aim.y.toFixed(1) + ')');
+  }
+
+  /* ---------- boze darter ---------- */
+  function angrySvg() {
+    return '<svg viewBox="0 0 240 250" role="img" aria-label="Boze darter die schreeuwt dat je er moet zijn">' +
+      '<g class="steam"><circle cx="30" cy="92" r="10" fill="#F4EAD0" opacity=".85"/></g><g class="steam s2"><circle cx="22" cy="70" r="8" fill="#F4EAD0" opacity=".85"/></g><g class="steam s3"><circle cx="40" cy="60" r="7" fill="#F4EAD0" opacity=".85"/></g>' +
+      '<g class="steam s2"><circle cx="210" cy="92" r="10" fill="#F4EAD0" opacity=".85"/></g><g class="steam"><circle cx="218" cy="70" r="8" fill="#F4EAD0" opacity=".85"/></g><g class="steam s3"><circle cx="200" cy="60" r="7" fill="#F4EAD0" opacity=".85"/></g>' +
+      '<path d="M40 250 Q44 178 120 172 Q196 178 200 250 Z" fill="#1B3B8F" stroke="#14110F" stroke-width="4"/>' +
+      '<path d="M96 174 L120 204 L144 174" fill="#F4EAD0" stroke="#14110F" stroke-width="4"/>' +
+      '<rect x="104" y="150" width="32" height="28" rx="8" fill="#E9A27A" stroke="#14110F" stroke-width="4"/>' +
+      '<circle class="face" cx="120" cy="104" r="62" fill="#E9A27A" stroke="#14110F" stroke-width="5"/>' +
+      '<path d="M78 70 Q120 40 162 70" fill="none" stroke="#14110F" stroke-width="5" stroke-linecap="round" opacity=".35"/>' +
+      '<g class="brow"><path d="M76 84 L108 98" stroke="#14110F" stroke-width="9" stroke-linecap="round"/><path d="M164 84 L132 98" stroke="#14110F" stroke-width="9" stroke-linecap="round"/></g>' +
+      '<circle cx="94" cy="108" r="10" fill="#fff" stroke="#14110F" stroke-width="3"/><circle cx="146" cy="108" r="10" fill="#fff" stroke="#14110F" stroke-width="3"/>' +
+      '<circle cx="97" cy="110" r="4.5" fill="#14110F"/><circle cx="143" cy="110" r="4.5" fill="#14110F"/>' +
+      '<g class="mouth"><path d="M92 134 Q120 124 148 134 Q142 166 120 166 Q98 166 92 134 Z" fill="#7A1020" stroke="#14110F" stroke-width="4"/><path d="M100 136 Q120 130 140 136 L138 144 Q120 140 102 144 Z" fill="#fff"/><ellipse cx="120" cy="158" rx="12" ry="6" fill="#E0394D"/></g>' +
+      '<g transform="translate(176 196) rotate(-30)"><rect x="-4" y="-34" width="8" height="40" rx="3" fill="#C9C9C9" stroke="#14110F" stroke-width="3"/><polygon points="-4,-34 4,-34 0,-48" fill="#14110F"/><polygon points="-4,6 4,6 14,22 -14,22" fill="#F5B02E" stroke="#14110F" stroke-width="3"/></g>' +
+      '</svg>';
+  }
+
+  /* ---------- tekenen ---------- */
+  function render() {
+    // namen
+    var names = $('names'); names.textContent = '';
+    PEOPLE.forEach(function (p) {
+      var b = el('button'); b.type = 'button'; b.setAttribute('data-s', statusOf(p.id));
+      b.setAttribute('aria-pressed', me === p.id ? 'true' : 'false');
+      var d = el('span', 'dot'); d.setAttribute('aria-hidden', 'true');
+      b.appendChild(d); b.appendChild(document.createTextNode(p.name));
+      b.addEventListener('click', function () {
+        me = p.id; lastThrow = null;
+        try { localStorage.setItem('dm-me', me); } catch (e) {}
+        shout = SHOUTS[Math.floor(Math.random() * SHOUTS.length)];
+        render();
+      });
+      names.appendChild(b);
+    });
+
+    var g = resolve();
+    var panel = $('me-panel'), body = $('me-body');
+    panel.hidden = !me;
+    body.textContent = '';
+    var cross = null;
+    if (me) {
+      var st = statusOf(me), nm = personOf(me).name;
+      $('h-me').textContent = '2. Kom je, ' + nm + '?';
+      $('b-ja').setAttribute('aria-pressed', st === 'ja' ? 'true' : 'false');
+      $('b-nee').setAttribute('aria-pressed', st === 'nee' ? 'true' : 'false');
+      if (st === 'nee') {
+        var a = el('div', 'angry'); a.innerHTML = angrySvg();
+        a.appendChild(el('div', 'bubble', shout));
+        body.appendChild(a);
+      } else if (st === 'ja') {
+        var canThrow = g.phase === 'throwing' && g.missing.indexOf(me) >= 0;
+        var mine = throwsOf(me);
+        if (canThrow) {
+          body.appendChild(el('p', 'note', g.round > 0 ? 'Beslissingsworp! Gelijke score. Gooi nog een pijl.' : 'Wacht tot het vizier goed staat en druk op Gooi.'));
+          var wrap = el('div'); wrap.innerHTML = boardSvg(); body.appendChild(wrap);
+          var btn = el('button', 'primary', 'Gooi!'); btn.type = 'button'; btn.addEventListener('click', doThrow);
+          body.appendChild(btn);
+          cross = $('cross'); cross.setAttribute('visibility', 'visible');
+          drawDarts(g.round);
+        } else if (mine.length) {
+          var t = mine[mine.length - 1];
+          var l = el('div', 'last');
+          var left = el('div'); left.appendChild(el('div', 'lbl', 'Jouw worp')); left.appendChild(el('div', '', t.label)); left.appendChild(el('div', 'note', t.calc));
+          l.appendChild(left); l.appendChild(el('div', 'big', String(t.score)));
+          body.appendChild(l);
+          var wrap2 = el('div'); wrap2.innerHTML = boardSvg(); body.appendChild(wrap2);
+          drawDarts(Math.min(g.round, mine.length - 1 >= g.round ? g.round : mine.length - 1));
+          if (g.phase === 'throwing') body.appendChild(el('p', 'note', 'Nu wachten op: ' + g.missing.map(function (id) { return personOf(id).name; }).join(', ') + '.'));
+        } else {
+          body.appendChild(el('p', 'note', 'Wacht op de volgende ronde. Jij doet nu even niet mee.'));
+        }
+      } else {
+        body.appendChild(el('p', 'note', 'Kies Ik kom om een pijl te gooien. Kies Ik kan niet en je krijgt wat te horen.'));
+      }
+    }
+    var c = $('cross'); if (c && !cross) c.setAttribute('visibility', 'hidden');
+
+    // pills + stand
+    var yes = 0, no = 0;
+    PEOPLE.forEach(function (p) { var s = statusOf(p.id); if (s === 'ja') yes++; if (s === 'nee') no++; });
+    var pills = $('pills'); pills.textContent = '';
+    [['yes', yes + ' komen'], ['no', no + ' niet'], ['open', (PEOPLE.length - yes - no) + ' nog open']].forEach(function (x) { pills.appendChild(el('span', 'pill ' + x[0], x[1])); });
+
+    var res = $('result'); res.textContent = '';
+    if (g.phase === 'done') {
+      var box = el('div', 'result');
+      box.appendChild(el('div', 'k', 'Het eerste rondje is voor'));
+      box.appendChild(el('div', 'who', personOf(g.loser).name));
+      var lt = throwsOf(g.loser)[g.round];
+      box.appendChild(el('div', '', personOf(g.loser).name + ' gooide ' + lt.label + ' (' + lt.score + ' punten) en trakteert.'));
+      res.appendChild(box);
+    } else if (g.phase === 'throwing') {
+      res.appendChild(el('p', 'note', (g.round > 0 ? 'Beslissingsworp. ' : '') + 'Nog te gooien: ' + g.missing.map(function (id) { return personOf(id).name; }).join(', ') + '.'));
+    } else if (g.phase === 'alone') {
+      res.appendChild(el('p', 'note', 'Je pijl ligt klaar. Zodra er nog iemand "Ik kom" kiest en gooit, zie je hier wie betaalt.'));
+    } else {
+      res.appendChild(el('p', 'note', 'Nog niemand heeft "Ik kom" gekozen.'));
+    }
+
+    var ul = $('stand'); ul.textContent = '';
+    PEOPLE.forEach(function (p) {
+      var li = el('li'); li.setAttribute('data-s', statusOf(p.id));
+      if (g.phase === 'done' && g.loser === p.id) li.setAttribute('data-loser', '1');
+      li.appendChild(el('span', 'n', p.name));
+      var th = throwsOf(p.id), s = statusOf(p.id), txt;
+      if (s === 'nee') txt = 'Komt niet';
+      else if (s === 'open') txt = 'Nog open';
+      else if (th.length) txt = th.map(function (t) { return t.label + ' (' + t.score + ')'; }).join(' → ');
+      else txt = 'Komt, moet nog gooien';
+      li.appendChild(el('span', 't', txt));
+      ul.appendChild(li);
+    });
+  }
+
+  $('b-ja').addEventListener('click', function () { chooseStatus('ja'); });
+  $('b-nee').addEventListener('click', function () { chooseStatus('nee'); });
+
+  render();
+  raf = requestAnimationFrame(loop);
+
+  (async function () {
+    try {
+      var db = window.claude && window.claude.use ? await window.claude.use('db') : null;
+      if (!db) { $('warn').hidden = false; return; }
+      coll = db.collection('attendance');
+      coll.onSnapshot(function (snap) {
+        var next = {};
+        snap.docs.forEach(function (d) {
+          var v = d.data() || {};
+          if (v.status === 'ja' || v.status === 'nee' || v.status === 'open') {
+            next[d.id] = { status: v.status, throws: Array.isArray(v.throws) ? v.throws : [] };
+          }
+        });
+        data = next;
+        var active = document.activeElement;
+        render();
+        if (active && active.id && $(active.id)) $(active.id).focus();
+      }, function () { $('warn').hidden = false; });
+    } catch (e) { $('warn').hidden = false; }
+  })();
+})();
+</script>
