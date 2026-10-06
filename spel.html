@@ -38,7 +38,7 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
 .boardwrap{max-width:520px;width:100%;margin-inline:auto}
 
 .angry{display:flex;flex-direction:column;align-items:center;gap:6px}
-.angry svg{width:min(260px,70vw);height:auto;animation:shake .16s linear infinite}
+.angry svg{width:260px;max-width:100%;height:auto;aspect-ratio:240/250;animation:shake .16s linear infinite}
 .angry .face{animation:flush 1.2s ease-in-out infinite alternate}
 .angry .steam{animation:steam 1.1s ease-out infinite;transform-box:fill-box;transform-origin:center}
 .angry .steam.s2{animation-delay:.35s} .angry .steam.s3{animation-delay:.7s}
@@ -50,7 +50,8 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
 @keyframes steam{from{transform:translateY(8px) scale(.5);opacity:.9}to{transform:translateY(-34px) scale(1.5);opacity:0}}
 @keyframes brow{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
 @keyframes yell{from{transform:scaleY(.7)}to{transform:scaleY(1.15)}}
-@media (prefers-reduced-motion:reduce){.angry svg,.angry .face,.angry .steam,.angry .brow,.angry .mouth,.bubble{animation:none}}
+/* De boze darter blijft ook bij "beweging verminderen" bewegen, alleen minder wild. */
+@media (prefers-reduced-motion:reduce){.angry svg{animation-duration:.6s}.bubble{animation:none}}
 </style>
 </head>
 <body>
@@ -183,7 +184,7 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
 
   /* ---------- boze darter (eigen tekening, geen echte persoon) ---------- */
   function angrySvg() {
-    return '<svg viewBox="0 0 240 250" role="img" aria-label="Boze darter die schreeuwt dat je er moet zijn">' +
+    return '<svg width="260" height="271" viewBox="0 0 240 250" role="img" aria-label="Boze darter die schreeuwt dat je er moet zijn">' +
       '<g class="steam"><circle cx="30" cy="92" r="10" fill="#F4EAD0" opacity=".85"/></g><g class="steam s2"><circle cx="22" cy="70" r="8" fill="#F4EAD0" opacity=".85"/></g><g class="steam s3"><circle cx="40" cy="60" r="7" fill="#F4EAD0" opacity=".85"/></g>' +
       '<g class="steam s2"><circle cx="210" cy="92" r="10" fill="#F4EAD0" opacity=".85"/></g><g class="steam"><circle cx="218" cy="70" r="8" fill="#F4EAD0" opacity=".85"/></g><g class="steam s3"><circle cx="200" cy="60" r="7" fill="#F4EAD0" opacity=".85"/></g>' +
       '<path d="M40 250 Q44 178 120 172 Q196 178 200 250 Z" fill="#1B3B8F" stroke="#14110F" stroke-width="4"/>' +
@@ -232,6 +233,7 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
       boardKey = key; getAim = null; body.textContent = '';
       if (me && st === 'nee') {
         var a = el('div', 'angry'); a.innerHTML = angrySvg(); a.appendChild(el('div', 'bubble', shout)); body.appendChild(a);
+        setTimeout(function () { try { a.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} }, 50);
       } else if (me && st === 'ja') {
         var mine = throwsOf(me);
         if (canThrow) {
