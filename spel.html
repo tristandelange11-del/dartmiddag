@@ -36,6 +36,9 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
 .result .k{font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#B31C30}
 .warn{background:var(--panel);border:2px dashed var(--amber);border-radius:14px;padding:14px 16px;margin:0;font-size:16px}
 .boardwrap{max-width:520px;width:100%;margin-inline:auto}
+.linkbtn{background:none;border:none;color:var(--muted);text-decoration:underline;font:700 15px var(--body);min-height:40px;padding:0;cursor:pointer}
+.linkbtn:hover{color:var(--cream)}
+button.pick[data-pending="1"]{border-color:var(--amber);color:var(--amber)}
 
 .angry{display:flex;flex-direction:column;align-items:center;gap:6px}
 .angry svg{width:260px;max-width:100%;height:auto;aspect-ratio:240/250;animation:shake .16s linear infinite}
@@ -70,8 +73,20 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
     <div class="names" id="names"></div>
   </section>
 
+  <section id="login" hidden aria-labelledby="h-login">
+    <h2 class="display" id="h-login">Inloggen</h2>
+    <p class="note">Vul de persoonlijke code in die je privé hebt gekregen. Zo kan niemand anders voor jou kiezen of gooien.</p>
+    <form id="login-form" class="row" autocomplete="off">
+      <label class="note" for="code" style="width:100%">Jouw code</label>
+      <input id="code" class="in" type="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="14" style="max-width:260px;text-transform:uppercase;letter-spacing:.12em">
+      <button class="btn" type="submit">Inloggen</button>
+    </form>
+    <p class="note" id="login-msg" role="alert" style="min-height:1.5em"></p>
+  </section>
+
   <section id="me-panel" hidden aria-labelledby="h-me">
     <h2 class="display" id="h-me">2. Kom je?</h2>
+    <div><button type="button" class="linkbtn" id="logout">Niet jij? Andere naam kiezen</button></div>
     <div class="row">
       <button type="button" class="att ja" id="b-ja">Ik kom</button>
       <button type="button" class="att nee" id="b-nee">Ik kan niet</button>
@@ -105,9 +120,9 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
   var configured = !!(cfg.url && cfg.key);
   var data = {};
   PEOPLE.forEach(function (p) { data[p.id] = { status: 'open', throws: [] }; });
-  var me = null;
-  try { me = localStorage.getItem('dm-me'); } catch (e) {}
-  if (!PEOPLE.some(function (p) { return p.id === me; })) me = null;
+  var me = null, code = '', pending = null;
+  try { me = localStorage.getItem('dm-me'); code = localStorage.getItem('dm-code') || ''; } catch (e) {}
+  if (!PEOPLE.some(function (p) { return p.id === me; }) || !code) { me = null; code = ''; }
   var shout = SHOUTS[Math.floor(Math.random() * SHOUTS.length)];
   var lastThrow = null, holdUntil = 0, getAim = null, boardKey = '';
 
@@ -141,11 +156,28 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
       render();
     }).catch(function () { showWarn('De verbinding met de opslag lukt even niet. Ververs de pagina als dit blijft.'); });
   }
+  /* Schrijven kan alleen via een functie in de database die eerst je persoonlijke code controleert. */
+  function rpc(fn, args) {
+    return fetch(cfg.url.replace(/\/$/, '') + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args)
+    }).then(function (r) { if (!r.ok) throw new Error('rpc mislukt'); return r.json(); });
+  }
+  function logout() {
+    me = null; code = ''; boardKey = ''; lastThrow = null;
+    try { localStorage.removeItem('dm-me'); localStorage.removeItem('dm-code'); } catch (e) {}
+    render();
+  }
   function save(id) {
     holdUntil = Date.now() + 2500;
     if (!configured) return;
-    api('players?id=eq.' + encodeURIComponent(id), { method: 'PATCH', body: { status: data[id].status, throws: data[id].throws, updated_at: new Date().toISOString() } })
-      .then(function (r) { if (!r.ok) throw new Error('schrijven mislukt'); })
+    rpc('speler_bijwerken', { p_id: id, p_code: code, p_status: data[id].status, p_throws: data[id].throws })
+      .then(function (ok) {
+        if (ok) { showWarn(''); return; }
+        showWarn('Je code werkt niet meer. Kies je naam en log opnieuw in.');
+        logout();
+      })
       .catch(function () { showWarn('Je keuze is niet opgeslagen. Probeer het nog een keer.'); });
   }
 
@@ -205,20 +237,24 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
     PEOPLE.forEach(function (p) {
       var b = el('button', 'pick'); b.type = 'button'; b.setAttribute('data-s', statusOf(p.id));
       b.setAttribute('aria-pressed', me === p.id ? 'true' : 'false');
+      if (pending === p.id) b.setAttribute('data-pending', '1');
       var d = el('span', 'dot'); d.setAttribute('aria-hidden', 'true');
       b.appendChild(d); b.appendChild(document.createTextNode(p.name));
       b.addEventListener('click', function () {
-        me = p.id; lastThrow = null; boardKey = '';
-        try { localStorage.setItem('dm-me', me); } catch (e) {}
-        shout = SHOUTS[Math.floor(Math.random() * SHOUTS.length)];
+        if (p.id === me) { pending = null; render(); return; }
+        pending = p.id; $('login-msg').textContent = ''; $('code').value = '';
         render();
+        $('code').focus();
       });
       names.appendChild(b);
     });
 
     var g = resolve();
     var panel = $('me-panel'), body = $('me-body');
-    panel.hidden = !me;
+    var loggingIn = !!pending && pending !== me;
+    $('login').hidden = !loggingIn;
+    if (loggingIn) $('h-login').textContent = 'Code van ' + personOf(pending).name;
+    panel.hidden = !me || loggingIn;
     var canThrow = false, st = me ? statusOf(me) : null;
     if (me) {
       $('h-me').textContent = '2. Kom je, ' + personOf(me).name + '?';
@@ -310,6 +346,29 @@ button.att.ja[aria-pressed="true"]{background:var(--yes)} button.att.nee[aria-pr
 
   $('b-ja').addEventListener('click', function () { chooseStatus('ja'); });
   $('b-nee').addEventListener('click', function () { chooseStatus('nee'); });
+  $('logout').addEventListener('click', logout);
+
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var target = pending, typed = $('code').value;
+    if (!target) return;
+    if (!configured) { $('login-msg').textContent = 'De opslag is nog niet gekoppeld.'; return; }
+    if (!typed.trim()) { $('login-msg').textContent = 'Vul eerst je code in.'; return; }
+    $('login-msg').textContent = 'Even controleren…';
+    rpc('speler_inloggen', { p_id: target, p_code: typed }).then(function (ok) {
+      if (!ok) { $('login-msg').textContent = 'Die code klopt niet. Controleer de code die je kreeg.'; return; }
+      me = target; code = typed; pending = null; boardKey = ''; lastThrow = null;
+      shout = SHOUTS[Math.floor(Math.random() * SHOUTS.length)];
+      try { localStorage.setItem('dm-me', me); localStorage.setItem('dm-code', code); } catch (err) {}
+      $('code').value = ''; $('login-msg').textContent = '';
+      render();
+    }).catch(function () { $('login-msg').textContent = 'Inloggen lukt even niet. Probeer het zo nog een keer.'; });
+  });
+
+  /* Een opgeslagen code controleren bij het openen van de pagina. */
+  if (me && code && configured) {
+    rpc('speler_inloggen', { p_id: me, p_code: code }).then(function (ok) { if (!ok) logout(); }).catch(function () {});
+  }
 
   /* plaats en tijd uit de uitnodiging op de homepage */
   (function () {

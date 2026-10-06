@@ -33,6 +33,13 @@ li span:first-child{font-family:var(--display)}
     <ul id="nu" aria-live="polite"></ul>
   </section>
 
+  <section class="card" aria-labelledby="h-code">
+    <h2 class="display" id="h-code" style="font-size:22px;margin:0">Beheerderscode</h2>
+    <p class="note">Zonder deze code werkt wissen niet.</p>
+    <label class="note" for="admin-code">Code</label>
+    <input id="admin-code" class="in" type="password" autocomplete="off" spellcheck="false" style="max-width:260px">
+  </section>
+
   <section class="choice">
     <div class="card">
       <h2 class="display" style="font-size:22px;margin:0">Alleen de worpen wissen</h2>
@@ -55,6 +62,7 @@ li span:first-child{font-family:var(--display)}
   var NAMES = { mart: 'Mart', stefan: 'Stefan', tristan: 'Tristan', niels: 'Niels', dennis: 'Dennis', dani: 'Dani' };
   var $ = function (id) { return document.getElementById(id); };
   var base = (cfg.url || '').replace(/\/$/, '') + '/rest/v1/players';
+  var rpcBase = (cfg.url || '').replace(/\/$/, '') + '/rest/v1/rpc/';
   var headers = { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key, 'Content-Type': 'application/json' };
   var armed = null, timer = 0;
 
@@ -77,8 +85,9 @@ li span:first-child{font-family:var(--display)}
   }
 
   /* Eerst klikken om te bevestigen, dan pas wissen. */
-  function wipe(btn, label, confirmLabel, body) {
+  function wipe(btn, label, confirmLabel, alles) {
     btn.addEventListener('click', function () {
+      if (!$('admin-code').value.trim()) { resetArmed(); say('Vul eerst de beheerderscode in.'); $('admin-code').focus(); return; }
       if (armed !== btn) {
         resetArmed();
         armed = btn; btn.textContent = confirmLabel;
@@ -88,8 +97,12 @@ li span:first-child{font-family:var(--display)}
       }
       resetArmed();
       say('Bezig met wissen…');
-      fetch(base + '?id=in.(mart,stefan,tristan,niels,dennis,dani)', { method: 'PATCH', headers: headers, body: JSON.stringify(body) })
-        .then(function (r) { if (!r.ok) throw new Error(); say('Gewist. Iedereen ziet de nieuwe stand binnen een paar seconden.'); return load(); })
+      fetch(rpcBase + 'spel_wissen', { method: 'POST', headers: headers, body: JSON.stringify({ p_code: $('admin-code').value, p_alles: alles }) })
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (ok) {
+          if (!ok) { say('Die beheerderscode klopt niet. Er is niets gewist.'); return; }
+          say('Gewist. Iedereen ziet de nieuwe stand binnen een paar seconden.'); return load();
+        })
         .catch(function () { say('Wissen is niet gelukt. Probeer het opnieuw.'); });
     });
     btn.dataset.label = label;
@@ -99,8 +112,8 @@ li span:first-child{font-family:var(--display)}
     if (armed) { armed.textContent = armed.dataset.label; armed = null; }
   }
 
-  wipe($('wis-worpen'), 'Worpen wissen', 'Zeker weten? Klik nogmaals', { throws: [] });
-  wipe($('wis-alles'), 'Alles wissen', 'Zeker weten? Klik nogmaals', { status: 'open', throws: [] });
+  wipe($('wis-worpen'), 'Worpen wissen', 'Zeker weten? Klik nogmaals', false);
+  wipe($('wis-alles'), 'Alles wissen', 'Zeker weten? Klik nogmaals', true);
   load();
   setInterval(load, 5000);
 })();
