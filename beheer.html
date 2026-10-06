@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Dartmiddag beheer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Figtree:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+main{max-width:620px;margin:0 auto;padding:40px 16px 72px;display:flex;flex-direction:column;gap:24px}
+.choice{display:flex;flex-direction:column;gap:12px}
+.danger{background:#E0394D;color:#14110F}
+.danger:hover{background:#E0394D}
+.status{margin:0;font-weight:700;min-height:1.5em}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+li{display:flex;justify-content:space-between;gap:12px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 16px}
+li span:first-child{font-family:var(--display)}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Beheer</p>
+    <h1 style="font-size:clamp(36px,9vw,56px);margin:10px 0 12px">Nieuwe ronde</h1>
+    <p class="note">Deze pagina staat niet in het menu. Hier wis je de stand van het spel. <a href="spel.html">Terug naar het spel</a></p>
+  </header>
+
+  <section class="card" aria-labelledby="h-nu">
+    <h2 class="display" id="h-nu" style="font-size:22px;margin:0">Stand nu</h2>
+    <ul id="nu" aria-live="polite"></ul>
+  </section>
+
+  <section class="choice">
+    <div class="card">
+      <h2 class="display" style="font-size:22px;margin:0">Alleen de worpen wissen</h2>
+      <p class="note">Iedereen houdt zijn keuze Ik kom of Ik kan niet, maar kan opnieuw gooien. Handig voor een nieuwe ronde.</p>
+      <button class="btn" type="button" id="wis-worpen">Worpen wissen</button>
+    </div>
+    <div class="card">
+      <h2 class="display" style="font-size:22px;margin:0">Alles wissen</h2>
+      <p class="note">Wist ook wie er komt. Iedereen staat daarna weer op nog open.</p>
+      <button class="btn danger" type="button" id="wis-alles">Alles wissen</button>
+    </div>
+  </section>
+  <p class="status" id="status" aria-live="polite"></p>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var cfg = window.DM_CONFIG || {};
+  var NAMES = { mart: 'Mart', stefan: 'Stefan', tristan: 'Tristan', niels: 'Niels', dennis: 'Dennis', dani: 'Dani' };
+  var $ = function (id) { return document.getElementById(id); };
+  var base = (cfg.url || '').replace(/\/$/, '') + '/rest/v1/players';
+  var headers = { apikey: cfg.key, Authorization: 'Bearer ' + cfg.key, 'Content-Type': 'application/json' };
+  var armed = null, timer = 0;
+
+  function say(t) { $('status').textContent = t; }
+
+  function load() {
+    return fetch(base + '?select=id,status,throws&order=id', { headers: headers })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (rows) {
+        var ul = $('nu'); ul.textContent = '';
+        rows.forEach(function (x) {
+          var li = document.createElement('li');
+          var a = document.createElement('span'); a.textContent = NAMES[x.id] || x.id;
+          var b = document.createElement('span');
+          b.textContent = (x.status === 'ja' ? 'Komt' : x.status === 'nee' ? 'Komt niet' : 'Nog open') + ' · ' + x.throws.length + (x.throws.length === 1 ? ' worp' : ' worpen');
+          li.appendChild(a); li.appendChild(b); ul.appendChild(li);
+        });
+      })
+      .catch(function () { say('De stand kon niet worden opgehaald.'); });
+  }
+
+  /* Eerst klikken om te bevestigen, dan pas wissen. */
+  function wipe(btn, label, confirmLabel, body) {
+    btn.addEventListener('click', function () {
+      if (armed !== btn) {
+        resetArmed();
+        armed = btn; btn.textContent = confirmLabel;
+        say('Klik nog een keer om te bevestigen.');
+        timer = setTimeout(resetArmed, 6000);
+        return;
+      }
+      resetArmed();
+      say('Bezig met wissen…');
+      fetch(base + '?id=in.(mart,stefan,tristan,niels,dennis,dani)', { method: 'PATCH', headers: headers, body: JSON.stringify(body) })
+        .then(function (r) { if (!r.ok) throw new Error(); say('Gewist. Iedereen ziet de nieuwe stand binnen een paar seconden.'); return load(); })
+        .catch(function () { say('Wissen is niet gelukt. Probeer het opnieuw.'); });
+    });
+    btn.dataset.label = label;
+  }
+  function resetArmed() {
+    clearTimeout(timer);
+    if (armed) { armed.textContent = armed.dataset.label; armed = null; }
+  }
+
+  wipe($('wis-worpen'), 'Worpen wissen', 'Zeker weten? Klik nogmaals', { throws: [] });
+  wipe($('wis-alles'), 'Alles wissen', 'Zeker weten? Klik nogmaals', { status: 'open', throws: [] });
+  load();
+  setInterval(load, 5000);
+})();
+</script>
+</body>
+</html>
