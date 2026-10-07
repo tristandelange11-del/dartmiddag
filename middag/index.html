@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dartmiddag</title>
+<meta name="description" content="Eén pijl per man. De laagste score betaalt het eerste rondje.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Figtree:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css">
+<style>
+.hero{display:flex;flex-wrap:wrap;gap:56px;align-items:center;padding-block:36px 88px}
+.hero > div{min-width:0}
+.hero .left{flex:1 1 520px}
+.hero .right{flex:1 1 380px;max-width:520px}
+.lead{margin:0 0 28px;font-size:21px;max-width:560px;color:var(--soft)}
+.practice-note{background:var(--panel);border:2px dashed var(--amber);border-radius:16px;padding:16px 20px;max-width:560px;margin-bottom:32px}
+.practice-note p{margin:4px 0 0;font-size:17px;color:var(--soft)}
+.actions{display:flex;flex-wrap:wrap;gap:16px}
+.ticket{background:var(--cream);color:var(--ink);border-radius:22px;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);overflow:hidden}
+.ticket-head{background:var(--red);color:var(--cream);padding:12px 26px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ticket-body{padding:26px;display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:800;font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.count{border-top:3px dashed var(--ink);padding-top:18px;display:flex;flex-direction:column;gap:2px}
+.count .small{font-weight:800;font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+.count .big{font-family:var(--display);font-size:42px;line-height:1.1;color:var(--red)}
+.badge{margin-top:12px;align-self:flex-start;background:var(--ink);color:var(--amber);border-radius:999px;padding:6px 16px;font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+.practice{background:var(--deep);border-block:3px solid var(--ink)}
+.practice .inner{padding-block:80px 88px}
+.practice .cols{display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start;margin-top:44px}
+.practice .boardcol{flex:1 1 440px;min-width:0;max-width:580px}
+.practice .ctrl{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.speedbtns{display:flex;flex-wrap:wrap;gap:8px}
+.sp{min-height:44px;padding:0 16px;border-radius:999px;border:2px solid var(--cream);background:transparent;color:var(--cream);font:800 15px var(--body);cursor:pointer}
+.sp:hover{background:rgba(244,234,208,.12)}
+.sp[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--ink)}
+.stats{display:flex;flex-wrap:wrap;gap:12px 28px;color:var(--soft);font-size:16px}
+.rules{padding-block:88px 72px}
+.rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:22px;margin-top:40px}
+.rule{background:var(--panel);border:2px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column;gap:10px}
+.rule .n{font-family:var(--display);font-size:44px;line-height:1;color:var(--amber)}
+.rule h3{margin:0;font-size:22px;font-weight:800}
+.rule p{margin:0;color:var(--soft);font-size:17px}
+footer{padding-block:24px 56px;border-top:2px dashed var(--line);display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;color:var(--muted);font-size:15px}
+</style>
+</head>
+<body>
+
+<div class="ticker-wrap" aria-hidden="true"><div class="ticker" id="ticker"></div></div>
+
+<header class="wrap top">
+  <a href="#top" class="brand" id="top">
+    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="18" fill="#14110F" stroke="#F4EAD0" stroke-width="2"/><circle cx="19" cy="19" r="12" fill="#C8233B"/><circle cx="19" cy="19" r="7" fill="#F4EAD0"/><circle cx="19" cy="19" r="3" fill="#1F8A5B"/></svg>
+    Dartmiddag
+  </a>
+  <nav class="nav" aria-label="Hoofdmenu">
+    <a href="#plan">Het plan</a>
+    <a href="#oefenen">Oefenbord</a>
+    <a href="#regels">Huisregels</a>
+    <a href="../spel.html">Echt spelen</a>
+  </nav>
+</header>
+
+<main>
+<section id="plan" class="wrap hero">
+  <div class="left">
+    <p class="eyebrow">Zaterdagmiddag &nbsp;&middot;&nbsp; 6 spelers &nbsp;&middot;&nbsp; 1 pijl</p>
+    <h1>Wie betaalt het <span style="color:var(--amber)">eerste rondje?</span></h1>
+    <p class="lead">Geen gezeur aan de bar. Iedereen gooit één pijl, de laagste score trakteert. De pijl liegt niet. De hand soms wel.</p>
+    <div class="practice-note">
+      <div class="lbl">Eerst oefenen, dan pas echt</div>
+      <p>Het bord op deze pagina is alleen om te oefenen en telt niet mee. Echt gooien kan pas op de pagina Echt spelen, nadat je je naam kiest en aangeeft dat je komt.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="#oefenen">Oefenen aan het bord</a>
+      <a class="btn btn-ghost" href="../spel.html">Echt spelen: kies je naam</a>
+      <a class="btn btn-ghost" id="wa" href="https://wa.me/">Uitnodiging via WhatsApp</a>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="ticket">
+      <div class="ticket-head"><span class="display" style="font-size:18px">Uitnodiging</span><span style="font-weight:800;font-size:14px;letter-spacing:.12em">NR. 001</span></div>
+      <div class="ticket-body">
+        <div class="field"><label for="date">Datum</label><input id="date" class="in" type="date" value="2026-10-10"></div>
+        <div class="field"><label for="time">Tijd</label><input id="time" class="in" type="time" value="14:00"></div>
+        <div class="field"><label for="place">Locatie</label><input id="place" class="in" type="text" placeholder="Bijv. Café De Pijl, Hoofdstraat 1" value="Big Ben, Leeuwarden"></div>
+        <div class="count" aria-live="polite">
+          <span class="small">Het is zover over</span>
+          <span class="big" id="cd-big">—</span>
+          <span style="font-weight:600" id="cd-small"></span>
+          <span style="margin-top:8px;font-size:16px;color:#3A3530" id="event-line"></span>
+          <span class="badge">Eigen pijlen mee</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="oefenen" class="practice">
+  <div class="wrap inner">
+    <p class="eyebrow">Alleen oefenen</p>
+    <h2>Oefenbord</h2>
+    <p style="margin:0;max-width:640px;color:var(--soft)">Gooi zoveel oefenpijlen als je wilt. Het vizier zweeft over het bord, druk op <strong>Gooi!</strong> als het goed staat. Niets hiervan telt mee voor het eerste rondje.</p>
+    <div class="cols">
+      <div class="boardcol" id="board"></div>
+      <div class="ctrl">
+        <div class="card">
+          <div class="lbl">Oefenworp</div>
+          <div role="group" aria-labelledby="speed-lbl" style="display:flex;flex-direction:column;gap:8px">
+            <span id="speed-lbl" style="font-weight:700;font-size:16px;color:var(--soft)">Snelheid van het vizier</span>
+            <div class="speedbtns" id="speeds"></div>
+          </div>
+          <button class="btn btn-big" type="button" id="throw">Gooi!</button>
+          <div class="stats"><span>Geworpen: <strong id="count">0</strong></span><span>Beste worp: <strong id="best">0</strong></span></div>
+          <button class="btn btn-ghost" type="button" id="clear" style="min-height:44px;font-size:15px;align-self:flex-start">Bord leegmaken</button>
+        </div>
+        <div aria-live="polite" id="result"></div>
+        <div class="paper">
+          <div class="display" style="font-size:26px;line-height:1.1">Klaar met oefenen?</div>
+          <p style="margin:0;font-size:17px">Op de pagina Echt spelen kies je je naam en geef je aan of je komt. Als je komt, gooi je daar je ene echte pijl. Iedereen ziet dan wie het eerste rondje betaalt.</p>
+          <a class="btn" href="../spel.html">Naar het echte spel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="regels" class="wrap rules">
+  <p class="eyebrow">Voor aan de muur</p>
+  <h2>De huisregels</h2>
+  <div class="rule-grid">
+    <div class="rule"><span class="n">01</span><h3>Eén pijl, één kans</h3><p>Stefan mag laten zien hoe het moet. Eén echte pijl, geen extra worp, en "hij was nog niet klaar" telt niet. Oefenen mag alleen aan het oefenbord.</p></div>
+    <div class="rule"><span class="n">02</span><h3>Laagste score betaalt</h3><p>Mart roept het hardst wie er betaalt en houdt iedereen eraan. Bij gelijkstand volgt een beslissingsworp. Dan is het echt menens.</p></div>
+    <div class="rule"><span class="n">03</span><h3>Naast het bord is nul</h3><p>De muur is niet aansprakelijk, Niels wel. Elk gat in de muur is voor zijn rekening, en de eigenaar van de kroeg wil graag een gesprek.</p></div>
+    <div class="rule"><span class="n">04</span><h3>Bullseye is eeuwige roem</h3><p>Raakt Dennis de roos, dan kiest hij het volgende nummer op de jukebox. De rest zingt mee, onder protest.</p></div>
+    <div class="rule"><span class="n">05</span><h3>Excuses kosten een slok</h3><p>Dani let op de excuses. "Mijn pijl was krom" en "de zon stond verkeerd" kosten een slok. Binnen schijnt geen zon.</p></div>
+    <div class="rule"><span class="n">06</span><h3>180 is heilig</h3><p>Bij een 180 roep je als een echte commentator ONE HUNDRED AND EIGHTY. Vergeten betekent bitterballen voor de tafel.</p></div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <span>Dartmiddag. Gemaakt voor één zaterdag en zes mensen.</span>
+  <span>Er zijn geen muren gewond geraakt. Nog niet.</span>
+</footer>
+
+<script src="../board-middag.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ticker */
+  var items = ['DUBBEL IN, DUBBEL UIT', '180!', 'LAAGSTE SCORE BETAALT', 'NAAST HET BORD = NUL', 'ÉÉN PIJL, ÉÉN KANS', 'BULLSEYE = EEUWIGE ROEM', 'BITTERBALLEN ZIJN GEEN VERPLICHTING, WEL EEN GOED IDEE'];
+  var html = '';
+  for (var k = 0; k < 2; k++) items.forEach(function (t) { html += '<span>' + t + ' &nbsp;&bull;</span>'; });
+  $('ticker').innerHTML = html;
+
+  /* uitnodiging: datum, tijd en locatie onthouden in deze browser */
+  var KEY = 'dartmiddag-uitnodiging';
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (saved.date) $('date').value = saved.date;
+    if (saved.time) $('time').value = saved.time;
+    if (typeof saved.place === 'string') $('place').value = saved.place;
+  } catch (e) {}
+
+  function updateEvent() {
+    var date = $('date').value, time = $('time').value, place = $('place').value.trim();
+    try { localStorage.setItem(KEY, JSON.stringify({ date: date, time: time, place: place })); } catch (e) {}
+    var d = date ? new Date(date + 'T' + (time || '12:00')) : null;
+    var ok = d && !isNaN(d.getTime());
+    var big = '—', small = 'Vul datum en tijd in', dateText = '';
+    if (ok) {
+      dateText = d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+      var diff = d.getTime() - Date.now();
+      if (diff > 0) {
+        var mins = Math.floor(diff / 60000), days = Math.floor(mins / 1440), hours = Math.floor((mins % 1440) / 60), m = mins % 60;
+        if (days > 0) { big = days + (days === 1 ? ' dag' : ' dagen'); small = 'en ' + hours + ' uur, ' + m + ' min'; }
+        else if (hours > 0) { big = hours + ' uur'; small = 'en ' + m + ' min'; }
+        else { big = m + ' min'; small = 'Zet je pijlen klaar'; }
+      } else if (diff > -6 * 3600 * 1000) { big = 'Nú!'; small = 'De pijlen vliegen al'; }
+      else { big = 'Voorbij'; small = 'Volgende keer beter mikken'; }
+    }
+    $('cd-big').textContent = big;
+    $('cd-small').textContent = small;
+    $('event-line').textContent = ok ? dateText + ' om ' + (time || '') + (place ? ' bij ' + place : ' · locatie volgt') : 'Kies een datum om de uitnodiging te maken.';
+    var link = new URL('../spel.html', location.href).href;
+    $('wa').href = 'https://wa.me/?text=' + encodeURIComponent(
+      'Dartmiddag! ' + (ok ? dateText + ' om ' + time : 'datum volgt') + (place ? ' bij ' + place : ' (locatie volgt)') +
+      '. Eigen pijlen mee! Eén pijl per man: de laagste score betaalt het eerste rondje. Kies je naam en gooi hier: ' + link);
+  }
+  ['date', 'time', 'place'].forEach(function (id) { $(id).addEventListener('input', updateEvent); });
+  updateEvent();
+  setInterval(updateEvent, 30000);
+
+  /* oefenbord */
+  $('board').innerHTML = DM.boardSvg('Oefenbord met het vizier en de geworpen pijlen');
+  var svg = $('board').querySelector('svg');
+  var SPEEDS = [{ n: 'Rustig', v: 0.55 }, { n: 'Normaal', v: 1 }, { n: 'Snel', v: 1.7 }, { n: 'Waanzin', v: 2.8 }];
+  var speed = 1;
+  try { var sv = parseFloat(localStorage.getItem('dm-snelheid')); if (SPEEDS.some(function (s) { return s.v === sv; })) speed = sv; } catch (e) {}
+  function drawSpeeds() {
+    var box = $('speeds'); box.textContent = '';
+    SPEEDS.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sp'; b.textContent = s.n;
+      b.setAttribute('aria-pressed', s.v === speed ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        speed = s.v;
+        try { localStorage.setItem('dm-snelheid', String(speed)); } catch (e) {}
+        drawSpeeds();
+      });
+      box.appendChild(b);
+    });
+  }
+  drawSpeeds();
+  var getAim = DM.startAim(svg, function () { return speed; });
+  var darts = [], count = 0, best = 0;
+
+  function drawPractice() {
+    DM.drawDarts(svg, darts.map(function (d, i) {
+      return { x: d.x, y: d.y, color: '#F5B02E', text: d.n, fresh: i === darts.length - 1 };
+    }));
+  }
+  $('throw').addEventListener('click', function () {
+    var p = getAim();
+    var x = +(p.x + (Math.random() - 0.5) * 14).toFixed(1), y = +(p.y + (Math.random() - 0.5) * 14).toFixed(1);
+    var r = DM.hit(x, y);
+    count++; best = Math.max(best, r.score);
+    darts.push({ x: x, y: y, n: count });
+    darts = darts.slice(-6);
+    drawPractice();
+    $('count').textContent = count; $('best').textContent = best;
+    $('result').innerHTML = '<div class="last pop"><div><div class="lbl">Laatste oefenworp</div><div class="what">' + r.label + '</div><div class="note">' + r.calc + '</div></div><div class="big">' + r.score + '</div></div>' +
+      '<p style="margin:12px 0 0;font-style:italic;color:var(--soft)">' + DM.roastFor(r) + '</p>';
+  });
+  $('clear').addEventListener('click', function () {
+    darts = []; count = 0; best = 0; drawPractice();
+    $('count').textContent = 0; $('best').textContent = 0; $('result').innerHTML = '';
+  });
+})();
+</script>
+</body>
+</html>

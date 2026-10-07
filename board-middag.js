@@ -1,4 +1,4 @@
-/* Dartbord voor de app: score berekenen, het balletje (vizier) laten bewegen en het bord tekenen. */
+/* Gedeeld dartbord: score berekenen, vizier laten bewegen en het bord tekenen. */
 (function () {
   var ORDER = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
 
@@ -14,7 +14,7 @@
   /* Score volgens de echte dartregels. Bord: viewBox 440, middelpunt 220,220. */
   function hit(x, y) {
     var dx = x - 220, dy = y - 220, r = Math.hypot(dx, dy);
-    if (r > 180) return { score: 0, label: 'Mis', calc: 'Naast het bord = 0' };
+    if (r > 180) return { score: 0, label: 'Mis', calc: 'Naast het bord = 0', miss: true };
     if (r <= 6.7) return { score: 50, label: 'Bullseye', calc: 'Roos = 50' };
     if (r <= 16.8) return { score: 25, label: 'Bull', calc: 'Buitenste roos = 25' };
     var ang = Math.atan2(dx, -dy) * 180 / Math.PI;
@@ -62,21 +62,20 @@
     var s = '';
     items.forEach(function (d) {
       s += '<g transform="translate(' + d.x + ' ' + d.y + ')"><g' + (d.fresh ? ' class="dart-in"' : '') + '>' +
-        '<circle r="11" fill="' + d.color + '" stroke="#14110F" stroke-width="2.5"/>' +
+        '<circle r="10" fill="' + d.color + '" stroke="#14110F" stroke-width="2.5"/>' +
         '<text y="0.5" text-anchor="middle" dominant-baseline="central" style="font:800 11px Figtree,sans-serif;fill:#14110F">' + d.text + '</text></g></g>';
     });
     g.innerHTML = s;
   }
 
-  /* Het balletje laten zweven met een instelbare snelheid.
-     Geeft { pos(), stop() } terug. stop() verbergt het balletje en stopt de animatie. */
+  /* Het vizier laten zweven. Geeft een functie terug met de huidige positie. */
   function startAim(svg, getSpeed) {
     var cross = svg.querySelector('.cross');
-    var t = 0, last = null, pos = { x: 220, y: 220 }, raf = 0, running = true;
+    var t = 0, last = null, pos = { x: 220, y: 220 }, raf = 0;
     function loop(ts) {
-      if (!running) return;
       raf = requestAnimationFrame(loop);
-      if (!document.body.contains(svg)) { running = false; cancelAnimationFrame(raf); return; }
+      if (!document.body.contains(svg)) { cancelAnimationFrame(raf); return; }
+      /* De tijd loopt mee met de gekozen snelheid, zodat het vizier niet springt als je de snelheid wisselt. */
       var dt = last === null ? 0 : Math.min((ts - last) / 1000, 0.1);
       last = ts;
       t += dt * (getSpeed ? getSpeed() : 1);
@@ -85,16 +84,13 @@
     }
     cross.setAttribute('visibility', 'visible');
     raf = requestAnimationFrame(loop);
-    return {
-      pos: function () { return pos; },
-      stop: function () { running = false; cancelAnimationFrame(raf); cross.setAttribute('visibility', 'hidden'); }
-    };
+    return function () { return pos; };
   }
 
   function roastFor(r) {
     var s = r.score;
     function pick(l) { return l[Math.floor(Math.random() * l.length)]; }
-    if (s === 0) return pick(['Naast het bord. De muur heeft er een nieuwe vriend bij.', 'Die pijl is op eigen houtje de kroeg in gelopen.', 'Gemist. Het bord was nochtans groot.']);
+    if (r.miss) return pick(['Naast het bord. De muur heeft er een nieuwe vriend bij.', 'Die pijl is op eigen houtje de kroeg in gelopen.', 'Gemist. Het bord was nochtans groot.']);
     if (s === 50) return 'BULLSEYE! Dit gaat de familiekroniek in.';
     if (s >= 40) return pick(['Dat is bijna verdacht goed. Heb je geoefend?', 'Wie had dat gedacht. Zeker de pijl niet.']);
     if (s >= 20) return pick(['Dik in orde. Je mag nog even blijven.', 'Prima worp. Niemand heeft iets gezien, maar prima.']);
@@ -102,5 +98,5 @@
     return pick(['Dat is geen gooien, dat is laten vallen met intentie.', 'De pijl zei: "ik wilde eigenlijk naar huis".']);
   }
 
-  window.DM = { hit: hit, aimAt: aimAt, boardSvg: boardSvg, drawDarts: drawDarts, startAim: startAim, roastFor: roastFor };
+  window.DM = { ORDER: ORDER, hit: hit, aimAt: aimAt, boardSvg: boardSvg, drawDarts: drawDarts, startAim: startAim, roastFor: roastFor };
 })();
