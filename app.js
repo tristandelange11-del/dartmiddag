@@ -9,7 +9,7 @@
   var MODES = [
     { id: 'laagste', n: 'Laagste betaalt', d: 'Wie de laagste score gooit', hint: 'De laagste score betaalt. Mik dus hoog.', rule: 'De laagste score betaalt.' },
     { id: 'hoogste', n: 'Hoogste betaalt', d: 'Wie de hoogste score gooit', hint: 'De hoogste score betaalt. Mik dus laag.', rule: 'De hoogste score betaalt.' },
-    { id: 'dichtstbij', n: 'Dichtst bij de roos betaalt', d: 'Wie het dichtst bij het midden gooit', hint: 'Wie het dichtst bij de roos gooit, betaalt. Mik dus ver weg.', rule: 'Wie het dichtst bij de roos gooit, betaalt.' }
+    { id: 'dichtstbij', n: 'Dichtst bij de roos wint', d: 'Wie het verst van het midden gooit, betaalt', hint: 'Wie het dichtst bij de roos gooit, wint. Wie het verst weg gooit, betaalt. Mik dus op de roos.', rule: 'Wie het verst van de roos gooit, betaalt.' }
   ];
   var ORDERS = [
     { id: 'invoer', n: 'Zoals ingevoerd', d: 'De eerste naam begint' },
@@ -75,11 +75,11 @@
     return (mm < 10 ? mm.toFixed(1) : String(Math.round(mm))).replace('.', ',') + ' mm';
   }
   function metric(h) { return S.mode === 'dichtstbij' ? Math.round(h.dist * 10) / 10 : h.score; }
-  function worstOf(vals) { return S.mode === 'hoogste' ? Math.max.apply(null, vals) : Math.min.apply(null, vals); }
+  function worstOf(vals) { return (S.mode === 'hoogste' || S.mode === 'dichtstbij') ? Math.max.apply(null, vals) : Math.min.apply(null, vals); }
   function bigText(h) { return S.mode === 'dichtstbij' ? fmtMm(h.dist) : String(h.score); }
-  function sameText(h) { return S.mode === 'dichtstbij' ? 'even dicht bij de roos (' + fmtMm(h.dist) + ')' : h.score + ' punten'; }
+  function sameText(h) { return S.mode === 'dichtstbij' ? 'even ver van de roos (' + fmtMm(h.dist) + ')' : h.score + ' punten'; }
   function resultLine(h, name) {
-    if (S.mode === 'dichtstbij') return name + ' gooide het dichtst bij de roos: ' + h.label + ', op ' + fmtMm(h.dist) + ' van het midden';
+    if (S.mode === 'dichtstbij') return name + ' gooide het verst van de roos: ' + h.label + ', op ' + fmtMm(h.dist) + ' van het midden';
     if (S.mode === 'hoogste') return name + ' gooide de hoogste score: ' + h.label + ' (' + h.score + ' punten)';
     return name + ' gooide ' + h.label + ' (' + h.score + ' punten)';
   }
@@ -370,11 +370,17 @@
   function showResult(loser) {
     var h = S.thrown[loser];
     $('loser').textContent = S.names[loser];
-    $('loser-text').textContent = resultLine(h, S.names[loser]) + ' en trakteert.';
+    var extra = '';
+    if (S.mode === 'dichtstbij') {
+      var best = null;
+      S.names.forEach(function (n, i) { var w = (S.totals[i] || [])[0]; if (w && (best === null || w.dist < best.d)) best = { i: i, d: w.dist, h: w }; });
+      if (best !== null && best.i !== loser) extra = ' De winnaar is ' + S.names[best.i] + ' (' + fmtMm(best.d) + ').';
+    }
+    $('loser-text').textContent = resultLine(h, S.names[loser]) + ' en trakteert.' + extra;
     var list = S.names.map(function (n, i) { return { i: i, n: n, w: S.totals[i] || [] }; })
       .sort(function (a, b) {
         var la = a.w.length ? metric(a.w[0]) : 0, lb = b.w.length ? metric(b.w[0]) : 0;
-        var dir = S.mode === 'hoogste' ? -1 : 1;   // de verliezer staat altijd bovenaan
+        var dir = (S.mode === 'hoogste' || S.mode === 'dichtstbij') ? -1 : 1;   // de verliezer staat altijd bovenaan, de beste onderaan
         return (a.i === loser ? -1 : 0) - (b.i === loser ? -1 : 0) || dir * (la - lb);
       });
     var ul = $('rank'); ul.textContent = '';
@@ -457,7 +463,7 @@
       var h = S.thrown[loser];
       g.fillStyle = '#14110F'; g.font = '700 32px ' + BODY;
       var line;
-      if (S.mode === 'dichtstbij') line = 'gooide ' + h.label + ', ' + fmtMm(h.dist) + ' van de roos';
+      if (S.mode === 'dichtstbij') line = 'gooide het verst van de roos: ' + fmtMm(h.dist);
       else if (S.mode === 'hoogste') line = 'gooide de hoogste score: ' + h.label + ' (' + h.score + ')';
       else line = 'gooide ' + h.label + ' (' + h.score + ' punten)';
       line += ' en trakteert';
