@@ -9,7 +9,7 @@
   var MODES = [
     { id: 'laagste', n: 'Laagste betaalt', d: 'Wie de laagste score gooit', hint: 'De laagste score betaalt. Mik dus hoog.', rule: 'De laagste score betaalt.' },
     { id: 'hoogste', n: 'Hoogste betaalt', d: 'Wie de hoogste score gooit', hint: 'De hoogste score betaalt. Mik dus laag.', rule: 'De hoogste score betaalt.' },
-    { id: 'dichtstbij', n: 'Dichtst bij de roos wint', d: 'Wie het verst van het midden gooit, betaalt', hint: 'Wie het dichtst bij de roos gooit, wint. Wie het verst weg gooit, betaalt. Mik dus op de roos.', rule: 'Wie het verst van de roos gooit, betaalt.' }
+    { id: 'dichtstbij', n: 'Gooi in de roos', d: 'In de roos wint. Wie het verst weg gooit, betaalt', hint: 'Gooi in de roos om te winnen. Wie het verst weg gooit, betaalt. Mik dus op de roos.', rule: 'In de roos wint. Wie het verst weg gooit, betaalt.' }
   ];
   var ORDERS = [
     { id: 'invoer', n: 'Zoals ingevoerd', d: 'De eerste naam begint' },
@@ -372,9 +372,15 @@
     $('loser').textContent = S.names[loser];
     var extra = '';
     if (S.mode === 'dichtstbij') {
-      var best = null;
-      S.names.forEach(function (n, i) { var w = (S.totals[i] || [])[0]; if (w && (best === null || w.dist < best.d)) best = { i: i, d: w.dist, h: w }; });
-      if (best !== null && best.i !== loser) extra = ' De winnaar is ' + S.names[best.i] + ' (' + fmtMm(best.d) + ').';
+      var inRoos = [], best = null;
+      S.names.forEach(function (n, i) {
+        var w = (S.totals[i] || [])[0];
+        if (!w) return;
+        if (w.dist <= 16.8) inRoos.push(n);
+        if (best === null || w.dist < best.d) best = { i: i, d: w.dist };
+      });
+      if (inRoos.length) extra = ' In de roos: ' + inRoos.join(', ') + '. ' + (inRoos.length === 1 ? 'Die wint.' : 'Die winnen.');
+      else if (best !== null && best.i !== loser) extra = ' Niemand gooide in de roos. ' + S.names[best.i] + ' kwam het dichtst (' + fmtMm(best.d) + ').';
     }
     $('loser-text').textContent = resultLine(h, S.names[loser]) + ' en trakteert.' + extra;
     var list = S.names.map(function (n, i) { return { i: i, n: n, w: S.totals[i] || [] }; })
