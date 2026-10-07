@@ -69,13 +69,17 @@
   }
 
   /* Het vizier laten zweven. Geeft een functie terug met de huidige positie. */
-  function startAim(svg) {
+  function startAim(svg, getSpeed) {
     var cross = svg.querySelector('.cross');
-    var t0 = performance.now(), pos = { x: 220, y: 220 }, raf = 0;
+    var t = 0, last = null, pos = { x: 220, y: 220 }, raf = 0;
     function loop(ts) {
       raf = requestAnimationFrame(loop);
       if (!document.body.contains(svg)) { cancelAnimationFrame(raf); return; }
-      pos = aimAt((ts - t0) / 1000);
+      /* De tijd loopt mee met de gekozen snelheid, zodat het vizier niet springt als je de snelheid wisselt. */
+      var dt = last === null ? 0 : Math.min((ts - last) / 1000, 0.1);
+      last = ts;
+      t += dt * (getSpeed ? getSpeed() : 1);
+      pos = aimAt(t);
       cross.setAttribute('transform', 'translate(' + pos.x.toFixed(1) + ' ' + pos.y.toFixed(1) + ')');
     }
     cross.setAttribute('visibility', 'visible');

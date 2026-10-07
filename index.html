@@ -32,6 +32,10 @@
 .practice .cols{display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start;margin-top:44px}
 .practice .boardcol{flex:1 1 440px;min-width:0;max-width:580px}
 .practice .ctrl{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:24px}
+.speedbtns{display:flex;flex-wrap:wrap;gap:8px}
+.sp{min-height:44px;padding:0 16px;border-radius:999px;border:2px solid var(--cream);background:transparent;color:var(--cream);font:800 15px var(--body);cursor:pointer}
+.sp:hover{background:rgba(244,234,208,.12)}
+.sp[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--ink)}
 .stats{display:flex;flex-wrap:wrap;gap:12px 28px;color:var(--soft);font-size:16px}
 .rules{padding-block:88px 72px}
 .rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:22px;margin-top:40px}
@@ -105,6 +109,10 @@ footer{padding-block:24px 56px;border-top:2px dashed var(--line);display:flex;fl
       <div class="ctrl">
         <div class="card">
           <div class="lbl">Oefenworp</div>
+          <div role="group" aria-labelledby="speed-lbl" style="display:flex;flex-direction:column;gap:8px">
+            <span id="speed-lbl" style="font-weight:700;font-size:16px;color:var(--soft)">Snelheid van het vizier</span>
+            <div class="speedbtns" id="speeds"></div>
+          </div>
           <button class="btn btn-big" type="button" id="throw">Gooi!</button>
           <div class="stats"><span>Geworpen: <strong id="count">0</strong></span><span>Beste worp: <strong id="best">0</strong></span></div>
           <button class="btn btn-ghost" type="button" id="clear" style="min-height:44px;font-size:15px;align-self:flex-start">Bord leegmaken</button>
@@ -191,7 +199,25 @@ footer{padding-block:24px 56px;border-top:2px dashed var(--line);display:flex;fl
   /* oefenbord */
   $('board').innerHTML = DM.boardSvg('Oefenbord met het vizier en de geworpen pijlen');
   var svg = $('board').querySelector('svg');
-  var getAim = DM.startAim(svg);
+  var SPEEDS = [{ n: 'Rustig', v: 0.55 }, { n: 'Normaal', v: 1 }, { n: 'Snel', v: 1.7 }, { n: 'Waanzin', v: 2.8 }];
+  var speed = 1;
+  try { var sv = parseFloat(localStorage.getItem('dm-snelheid')); if (SPEEDS.some(function (s) { return s.v === sv; })) speed = sv; } catch (e) {}
+  function drawSpeeds() {
+    var box = $('speeds'); box.textContent = '';
+    SPEEDS.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sp'; b.textContent = s.n;
+      b.setAttribute('aria-pressed', s.v === speed ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        speed = s.v;
+        try { localStorage.setItem('dm-snelheid', String(speed)); } catch (e) {}
+        drawSpeeds();
+      });
+      box.appendChild(b);
+    });
+  }
+  drawSpeeds();
+  var getAim = DM.startAim(svg, function () { return speed; });
   var darts = [], count = 0, best = 0;
 
   function drawPractice() {
