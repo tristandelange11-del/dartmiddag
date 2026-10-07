@@ -32,6 +32,29 @@
     };
   }
 
+  /* Elke worp krijgt een eigen, willekeurige baan met een willekeurig startpunt en een
+     schommelend tempo. Je kunt hem dus niet uitrekenen of uit je hoofd leren.
+     De gemiddelde snelheid blijft gelijk, zodat de gekozen snelheid zijn moeilijkheid houdt. */
+  function makeAim() {
+    var r = Math.random, TAU = Math.PI * 2;
+    function between(a, b) { return a + (b - a) * r(); }
+    var ax1 = between(127, 149), ay1 = between(127, 149);
+    var ax2 = 180 - ax1, ay2 = 180 - ay1;
+    var f = [between(0.95, 1.5), between(2.3, 3.5), between(1.25, 1.9), between(1.8, 2.9)].map(function (x) { return x * 0.88; });
+    var p = [r() * TAU, r() * TAU, r() * TAU, r() * TAU];
+    var tempoAmp = between(0.15, 0.35), tempoF = between(0.4, 0.9), tempoP = r() * TAU;
+    return {
+      start: r() * 60,
+      tempo: function (t) { return 1 + tempoAmp * Math.sin(tempoF * t + tempoP); },
+      at: function (u) {
+        return {
+          x: 220 + ax1 * Math.sin(f[0] * u + p[0]) + ax2 * Math.sin(f[1] * u + p[1]),
+          y: 220 + ay1 * Math.sin(f[2] * u + p[2]) + ay2 * Math.sin(f[3] * u + p[3])
+        };
+      }
+    };
+  }
+
   function boardSvg(label) {
     var s = '<svg class="board" viewBox="0 0 440 440" role="img" aria-label="' + (label || 'Dartbord') + '">' +
       '<circle cx="220" cy="220" r="214" fill="#14110F" stroke="#F5B02E" stroke-width="4"/>' +
@@ -71,15 +94,15 @@
   /* Het vizier laten zweven. Geeft een functie terug met de huidige positie. */
   function startAim(svg, getSpeed) {
     var cross = svg.querySelector('.cross');
-    var t = 0, last = null, pos = { x: 220, y: 220 }, raf = 0;
+    var path = makeAim(), t = path.start, last = null, pos = { x: 220, y: 220 }, raf = 0;
     function loop(ts) {
       raf = requestAnimationFrame(loop);
       if (!document.body.contains(svg)) { cancelAnimationFrame(raf); return; }
       /* De tijd loopt mee met de gekozen snelheid, zodat het vizier niet springt als je de snelheid wisselt. */
       var dt = last === null ? 0 : Math.min((ts - last) / 1000, 0.1);
       last = ts;
-      t += dt * (getSpeed ? getSpeed() : 1);
-      pos = aimAt(t);
+      t += dt * (getSpeed ? getSpeed() : 1) * path.tempo(t);
+      pos = path.at(t);
       cross.setAttribute('transform', 'translate(' + pos.x.toFixed(1) + ' ' + pos.y.toFixed(1) + ')');
     }
     cross.setAttribute('visibility', 'visible');
