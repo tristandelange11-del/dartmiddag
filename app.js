@@ -198,7 +198,111 @@
     });
     show('result');
     buzz(60);
+    prepareShare(loser, list);
   }
+
+  /* ---------- de uitslag delen ---------- */
+  var shareFile = null, shareText = '', shareToken = 0;
+
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  /* Tekent een afbeelding met de uitslag. Geeft een Promise met een PNG-bestand (of null). */
+  function drawCard(loser, list) {
+    var fonts = (document.fonts && document.fonts.load)
+      ? Promise.all([document.fonts.load('56px "Bowlby One"'), document.fonts.load('800 30px "Figtree"')]).catch(function () {})
+      : Promise.resolve();
+    return fonts.then(function () {
+      var W = 1080, top = 548, rowH = 62, H = Math.max(1350, top + list.length * rowH + 210);
+      var c = document.createElement('canvas'); c.width = W; c.height = H;
+      var g = c.getContext('2d');
+      var DISPLAY = '"Bowlby One","Arial Black",sans-serif', BODY = '"Figtree",system-ui,sans-serif';
+      g.fillStyle = '#0F2B22'; g.fillRect(0, 0, W, H);
+      g.textBaseline = 'middle';
+
+      function circle(x, y, r, col) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = col; g.fill(); }
+      circle(120, 100, 48, '#F4EAD0'); circle(120, 100, 44, '#14110F'); circle(120, 100, 34, '#C8233B'); circle(120, 100, 20, '#F4EAD0'); circle(120, 100, 8, '#1F8A5B');
+      g.fillStyle = '#F4EAD0'; g.font = '58px ' + DISPLAY; g.textAlign = 'left';
+      g.fillText('Dartmaatje', 190, 102);
+
+      // kaart met de verliezer
+      g.fillStyle = '#14110F'; roundRect(g, 68, 206, 960, 250, 40); g.fill();
+      g.fillStyle = '#F4EAD0'; roundRect(g, 60, 190, 960, 250, 40); g.fill();
+      g.fillStyle = '#B31C30'; g.font = '800 30px ' + BODY; g.textAlign = 'left';
+      g.fillText('HET EERSTE RONDJE IS VOOR', 100, 238);
+      var name = S.names[loser], size = 104;
+      g.fillStyle = '#14110F';
+      do { g.font = size + 'px ' + DISPLAY; size -= 4; } while (g.measureText(name).width > 880 && size > 36);
+      g.fillText(name, 100, 322);
+      var h = S.thrown[loser];
+      g.fillStyle = '#14110F'; g.font = '700 32px ' + BODY;
+      g.fillText('gooide ' + h.label + ' (' + h.score + ' punten) en trakteert', 100, 398);
+
+      // alle scores
+      g.fillStyle = '#F5B02E'; g.font = '800 28px ' + BODY;
+      g.fillText('ALLE SCORES', 70, top - 40);
+      list.forEach(function (p, idx) {
+        var y = top + idx * rowH, first = p.w[0];
+        if (p.i === loser) { g.fillStyle = 'rgba(224,57,77,.25)'; roundRect(g, 60, y - 26, 960, 54, 16); g.fill(); }
+        circle(100, y + 1, 20, color(p.i));
+        g.fillStyle = '#14110F'; g.font = '800 22px ' + BODY; g.textAlign = 'center'; g.fillText(String(p.i + 1), 100, y + 2);
+        g.textAlign = 'left'; g.fillStyle = '#F4EAD0'; g.font = '700 32px ' + BODY;
+        var nm = p.n; while (g.measureText(nm).width > 560 && nm.length > 3) nm = nm.slice(0, -2);
+        g.fillText(nm === p.n ? nm : nm + '…', 142, y + 2);
+        g.textAlign = 'right';
+        g.fillStyle = '#F4EAD0'; g.font = '800 32px ' + BODY;
+        g.fillText(first ? String(first.score) : '–', 990, y + 2);
+        if (first) { g.fillStyle = '#B7C9BE'; g.font = '500 24px ' + BODY; g.fillText(first.label, 890, y + 3); }
+      });
+
+      // voet
+      g.textAlign = 'center';
+      g.fillStyle = '#B7C9BE'; g.font = '500 32px ' + BODY; g.fillText('Eén pijl per speler. De laagste score betaalt.', W / 2, H - 120);
+      g.fillStyle = '#F5B02E'; g.font = '44px ' + DISPLAY; g.fillText('dartmaatje.nl', W / 2, H - 62);
+
+      return new Promise(function (resolve) {
+        c.toBlob(function (blob) {
+          if (!blob) return resolve(null);
+          try { resolve(new File([blob], 'dartmaatje-uitslag.png', { type: 'image/png' })); } catch (e) { resolve(null); }
+        }, 'image/png');
+      });
+    });
+  }
+
+  /* De afbeelding wordt klaargezet zodra de uitslag er is, zodat delen meteen na een tik kan. */
+  function prepareShare(loser, list) {
+    var token = ++shareToken;
+    shareFile = null;
+    shareText = S.names[loser] + ' trakteert het eerste rondje! Gegooid met Dartmaatje: https://dartmaatje.nl';
+    $('share-msg').textContent = '';
+    drawCard(loser, list).then(function (f) { if (token === shareToken) shareFile = f; }).catch(function () {});
+  }
+
+  function say(text) {
+    var m = $('share-msg'); m.textContent = text;
+    setTimeout(function () { if (m.textContent === text) m.textContent = ''; }, 4000);
+  }
+
+  function doShare() {
+    function done(err) { if (err && err.name !== 'AbortError') fallback(); }
+    function fallback() {
+      try {
+        navigator.clipboard.writeText(shareText).then(function () { say('Tekst gekopieerd. Plak hem in WhatsApp of je socials.'); },
+          function () { say('Delen lukt hier niet. Maak een screenshot van de uitslag.'); });
+      } catch (e) { say('Delen lukt hier niet. Maak een screenshot van de uitslag.'); }
+    }
+    try {
+      if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        navigator.share({ files: [shareFile], text: shareText }).then(null, done); return;
+      }
+      if (navigator.share) { navigator.share({ text: shareText, url: 'https://dartmaatje.nl' }).then(null, done); return; }
+    } catch (e) { /* val terug op kopiëren */ }
+    fallback();
+  }
+  $('share').addEventListener('click', doShare);
 
   $('again').addEventListener('click', newGame);
   $('edit').addEventListener('click', function () { show('setup'); renderSetup(); });

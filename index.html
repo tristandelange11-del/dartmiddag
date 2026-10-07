@@ -93,7 +93,9 @@ body:has(#game:not([hidden])) .webfooter,body:has(#tie:not([hidden])) .webfooter
     </div>
     <h2>Alle scores</h2>
     <ul class="rank" id="rank"></ul>
-    <button class="btn btn-big" type="button" id="again">Nog een ronde</button>
+    <button class="btn btn-big" type="button" id="share">Deel de uitslag</button>
+    <p class="note" id="share-msg" role="status" aria-live="polite" style="min-height:1.4em;text-align:center;margin:-6px 0 0"></p>
+    <button class="btn btn-ghost" type="button" id="again">Nog een ronde</button>
     <button class="btn btn-ghost" type="button" id="edit">Spelers aanpassen</button>
   </section>
   <footer class="webfooter">
