@@ -105,6 +105,19 @@ body:has(#game:not([hidden])) .webfooter,body:has(#tie:not([hidden])) .webfooter
   </footer>
 </main>
 
+  <!-- Delen of bewaren -->
+  <div id="sharebox" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sharebox-title">
+      <h2 id="sharebox-title">Deel de uitslag</h2>
+      <img id="share-img" alt="De uitslag als afbeelding" width="540" height="675">
+      <p class="note" id="save-hint" hidden>Houd de afbeelding hierboven ingedrukt en kies <strong>Bewaar in Foto's</strong>.</p>
+      <p class="note" id="save-done" role="status" aria-live="polite" hidden></p>
+      <button class="btn btn-big" type="button" id="share-go">Delen via…</button>
+      <button class="btn" type="button" id="share-save">Afbeelding bewaren</button>
+      <button class="btn btn-ghost" type="button" id="share-close">Sluiten</button>
+    </div>
+  </div>
+
 <script src="board.js"></script>
 <script src="app.js"></script>
 </body>

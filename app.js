@@ -202,7 +202,7 @@
   }
 
   /* ---------- de uitslag delen ---------- */
-  var shareFile = null, shareText = '', shareToken = 0;
+  var shareFile = null, shareText = '', shareToken = 0, shareURL = '', lastFocus = null;
 
   function roundRect(g, x, y, w, h, r) {
     g.beginPath();
@@ -216,7 +216,7 @@
       ? Promise.all([document.fonts.load('56px "Bowlby One"'), document.fonts.load('800 30px "Figtree"')]).catch(function () {})
       : Promise.resolve();
     return fonts.then(function () {
-      var W = 1080, top = 548, rowH = 62, H = Math.max(1350, top + list.length * rowH + 210);
+      var W = 1080, top = 548, rowH = 62, H = Math.max(1080, top + list.length * rowH + 210);
       var c = document.createElement('canvas'); c.width = W; c.height = H;
       var g = c.getContext('2d');
       var DISPLAY = '"Bowlby One","Arial Black",sans-serif', BODY = '"Figtree",system-ui,sans-serif';
@@ -278,11 +278,16 @@
     shareFile = null;
     shareText = S.names[loser] + ' trakteert het eerste rondje! Gegooid met Dartmaatje: https://dartmaatje.nl';
     $('share-msg').textContent = '';
-    drawCard(loser, list).then(function (f) { if (token === shareToken) shareFile = f; }).catch(function () {});
+    drawCard(loser, list).then(function (f) {
+      if (token !== shareToken) return;
+      shareFile = f;
+      if (shareURL) { URL.revokeObjectURL(shareURL); shareURL = ''; }
+      if (f) shareURL = URL.createObjectURL(f);
+    }).catch(function () {});
   }
 
   function say(text) {
-    var m = $('share-msg'); m.textContent = text;
+    var m = !$('sharebox').hidden ? $('save-done') : $('share-msg'); m.hidden = false; m.textContent = text;
     setTimeout(function () { if (m.textContent === text) m.textContent = ''; }, 4000);
   }
 
@@ -302,7 +307,41 @@
     } catch (e) { /* val terug op kopiëren */ }
     fallback();
   }
-  $('share').addEventListener('click', doShare);
+  function isTouch() { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); }
+
+  function openShareBox() {
+    lastFocus = document.activeElement;
+    var img = $('share-img');
+    if (shareURL) { img.src = shareURL; img.hidden = false; } else { img.removeAttribute('src'); img.hidden = true; }
+    $('save-hint').hidden = true; $('save-done').hidden = true; $('save-done').textContent = '';
+    $('share-save').disabled = !shareFile;
+    $('sharebox').hidden = false;
+    $('share-go').focus();
+  }
+  function closeShareBox() {
+    $('sharebox').hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function saveImage() {
+    if (!shareFile || !shareURL) return;
+    if (isTouch()) {
+      /* Op een telefoon: lang indrukken op de afbeelding geeft "Bewaar in Foto's". */
+      $('save-hint').hidden = false;
+      $('save-hint').scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = shareURL; a.download = 'dartmaatje-uitslag.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    $('save-done').textContent = 'De afbeelding staat in je map Downloads.'; $('save-done').hidden = false;
+  }
+
+  $('share').addEventListener('click', openShareBox);
+  $('share-go').addEventListener('click', doShare);
+  $('share-save').addEventListener('click', saveImage);
+  $('share-close').addEventListener('click', closeShareBox);
+  $('sharebox').addEventListener('click', function (e) { if (e.target === $('sharebox')) closeShareBox(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('sharebox').hidden) closeShareBox(); });
 
   $('again').addEventListener('click', newGame);
   $('edit').addEventListener('click', function () { show('setup'); renderSetup(); });
