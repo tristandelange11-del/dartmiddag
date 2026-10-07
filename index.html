@@ -52,15 +52,48 @@ body:has(#game:not([hidden])) .webfooter,body:has(#tie:not([hidden])) .webfooter
       <p class="note">Hoe sneller het balletje, hoe lastiger het mikken.</p>
     </div>
 
+    <div class="card" role="group" aria-labelledby="h-mode">
+      <h2 id="h-mode">Wie betaalt?</h2>
+      <div class="opts" id="modes"></div>
+    </div>
+
+    <div class="card" role="group" aria-labelledby="h-order">
+      <h2 id="h-order">Wie gooit eerst?</h2>
+      <div class="speeds" id="orders" style="grid-template-columns:repeat(2,1fr)"></div>
+    </div>
+
+    <div class="card">
+      <label class="toggle" for="punish-toggle">
+        <input type="checkbox" id="punish-toggle">
+        <span class="tbox" aria-hidden="true"></span>
+        <span class="ttext"><strong>Random straf</strong><small>De verliezer krijgt ook een grappige straf</small></span>
+      </label>
+    </div>
+
     <div>
       <button class="btn btn-big" type="button" id="start">Start de ronde</button>
       <p class="note" id="start-note" style="margin-top:10px;text-align:center"></p>
     </div>
   </section>
 
+  <!-- 1b. Draairad voor de volgorde -->
+  <section id="wheel" hidden style="display:flex;flex-direction:column;gap:16px" aria-labelledby="wheel-h">
+    <div>
+      <h1 id="wheel-h" style="font-size:clamp(28px,8vw,38px)">Wie gooit eerst?</h1>
+      <p class="note" id="wheel-sub" style="margin-top:8px">Tik op Draai en het rad kiest.</p>
+    </div>
+    <svg id="wheel-svg" class="wheelsvg" viewBox="-220 -220 440 440" role="img" aria-label="Draairad met de namen van de spelers"></svg>
+    <button class="btn btn-big" type="button" id="wheel-spin">Draai!</button>
+    <p class="note" id="wheel-live" role="status" aria-live="polite" style="text-align:center;min-height:1.4em;margin:-4px 0 0"></p>
+    <ol class="orderlist" id="order-list"></ol>
+    <button class="btn btn-big" type="button" id="wheel-go" hidden>Start de ronde</button>
+    <button class="btn btn-ghost" type="button" id="wheel-rest">Rest laten loten</button>
+    <button class="btn btn-ghost" type="button" id="wheel-back">Terug naar de spelers</button>
+  </section>
+
   <!-- 2. Gooien -->
   <section id="game" hidden style="display:flex;flex-direction:column;gap:16px" aria-labelledby="who">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px">
       <span class="lbl" id="round-lbl"></span>
       <span class="note" id="progress"></span>
     </div>
@@ -91,6 +124,11 @@ body:has(#game:not([hidden])) .webfooter,body:has(#tie:not([hidden])) .webfooter
       <div class="k">Het eerste rondje is voor</div>
       <div class="who" id="loser"></div>
       <p id="loser-text" style="margin:0"></p>
+    </div>
+    <div class="punish pop" id="punish-box" hidden aria-live="polite">
+      <div class="lbl">De straf</div>
+      <p id="punish-text"></p>
+      <button class="btn btn-ghost" type="button" id="punish-again">Andere straf</button>
     </div>
     <h2>Alle scores</h2>
     <ul class="rank" id="rank"></ul>

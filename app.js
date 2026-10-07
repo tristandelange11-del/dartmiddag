@@ -6,13 +6,51 @@
     { id: 'normaal', n: 'Normaal', v: 1.3, d: 'Lekker spannend' },
     { id: 'snel', n: 'Snel', v: 2.4, d: 'Alleen voor durvers' }
   ];
+  var MODES = [
+    { id: 'laagste', n: 'Laagste betaalt', d: 'Wie de laagste score gooit', hint: 'De laagste score betaalt. Mik dus hoog.', rule: 'De laagste score betaalt.' },
+    { id: 'hoogste', n: 'Hoogste betaalt', d: 'Wie de hoogste score gooit', hint: 'De hoogste score betaalt. Mik dus laag.', rule: 'De hoogste score betaalt.' },
+    { id: 'dichtstbij', n: 'Dichtst bij de roos betaalt', d: 'Wie het dichtst bij het midden gooit', hint: 'Wie het dichtst bij de roos gooit, betaalt. Mik dus ver weg.', rule: 'Wie het dichtst bij de roos gooit, betaalt.' }
+  ];
+  var ORDERS = [
+    { id: 'invoer', n: 'Zoals ingevoerd', d: 'De eerste naam begint' },
+    { id: 'rad', n: 'Draairad', d: 'Het rad kiest' }
+  ];
+  /* De straffen. Elke regel is één straf; pas ze hier aan, voeg toe of haal weg. */
+  var STRAFFEN = [
+    "Bestel de volgende ronde in een Frans accent.",
+    "Speel de volgende worp met je zwakke hand.",
+    "Na je eerstvolgende bullseye mag je niet juichen.",
+    "Vertel je meest gênante verhaal.",
+    "Je mag de eerstvolgende 30 minuten alleen nog fluisteren.",
+    "Maak een compliment aan elke persoon, en meen het.",
+    "Houd je volgende worp met je ogen dicht.",
+    "Imiteer een persoon die je kent naar keuze, de rest raadt wie.",
+    "Laat de groep je telefoon-achtergrond kiezen voor de rest van de dag.",
+    "Doe een squat, zo diep mogelijk.",
+    "Geef je rechter hand de naam van je geliefde. Heb je die niet, dan volstaat familie ook.",
+    "Geef dertig seconden een serieuze toespraak over waarom sokken verdwijnen.",
+    "Doe een modeshow van tien seconden met je huidige outfit.",
+    "Bied een stoel uitgebreid excuses aan omdat je erop hebt gezeten.",
+    "Verkoop een willekeurig voorwerp alsof het een revolutionaire uitvinding is.",
+    "Laat de groep een woord kiezen dat je in je volgende drie zinnen moet verwerken.",
+    "Geef jezelf een nieuwe bijnaam en stel je daarmee officieel voor.",
+    "Doe een overwinningsdans voor een prestatie die niemand indrukwekkend vindt.",
+    "Geef een weerbericht over de sfeer in de kamer.",
+    "Verzin een complottheorie over een alledaags voorwerp.",
+    "Geef een dankwoord voor het winnen van de prijs voor ‘meest gemiddelde persoon’.",
+    "Beeld een emoji uit. De rest moet hem raden.",
+    "Verzin een reclameslogan voor jezelf en presenteer die vol overtuiging.",
+    "Laat de groep een onschuldige uitspraak kiezen die je drie keer op een natuurlijk moment moet zeggen.",
+    "Leg uit hoe je een boterham maakt alsof je een topchef met drie Michelinsterren bent.",
+    "Maak een liedje van vier regels over het eerste voorwerp dat je ziet."
+  ];
   var STORE = 'dartmaatje-app';
 
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
   var S = {
-    names: [], speed: 'normaal',
+    names: [], speed: 'normaal', mode: 'laagste', order: 'invoer', punish: false, currentPunish: '', lastLoser: null, lastList: null,
     view: 'setup',
     queue: [], qi: 0, round: 1,
     thrown: {},        // spelerindex -> worp van deze beurtronde
@@ -24,8 +62,27 @@
     var saved = JSON.parse(localStorage.getItem(STORE) || '{}');
     if (Array.isArray(saved.names)) S.names = saved.names.filter(function (n) { return typeof n === 'string' && n.trim(); }).slice(0, MAX_PLAYERS);
     if (SPEEDS.some(function (s) { return s.id === saved.speed; })) S.speed = saved.speed;
+    if (MODES.some(function (m) { return m.id === saved.mode; })) S.mode = saved.mode;
+    if (ORDERS.some(function (o) { return o.id === saved.order; })) S.order = saved.order;
+    S.punish = saved.punish === true;
   } catch (e) {}
-  function persist() { try { localStorage.setItem(STORE, JSON.stringify({ names: S.names, speed: S.speed })); } catch (e) {} }
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify({ names: S.names, speed: S.speed, mode: S.mode, order: S.order, punish: S.punish })); } catch (e) {} }
+
+  /* ---------- spelmodus: wat telt en wie betaalt ---------- */
+  function modeInfo() { return MODES.filter(function (m) { return m.id === S.mode; })[0]; }
+  function fmtMm(dist) {   // het bord is 170 mm breed in de straal; in de tekening is dat 180
+    var mm = dist * 170 / 180;
+    return (mm < 10 ? mm.toFixed(1) : String(Math.round(mm))).replace('.', ',') + ' mm';
+  }
+  function metric(h) { return S.mode === 'dichtstbij' ? Math.round(h.dist * 10) / 10 : h.score; }
+  function worstOf(vals) { return S.mode === 'hoogste' ? Math.max.apply(null, vals) : Math.min.apply(null, vals); }
+  function bigText(h) { return S.mode === 'dichtstbij' ? fmtMm(h.dist) : String(h.score); }
+  function sameText(h) { return S.mode === 'dichtstbij' ? 'even dicht bij de roos (' + fmtMm(h.dist) + ')' : h.score + ' punten'; }
+  function resultLine(h, name) {
+    if (S.mode === 'dichtstbij') return name + ' gooide het dichtst bij de roos: ' + h.label + ', op ' + fmtMm(h.dist) + ' van het midden';
+    if (S.mode === 'hoogste') return name + ' gooide de hoogste score: ' + h.label + ' (' + h.score + ' punten)';
+    return name + ' gooide ' + h.label + ' (' + h.score + ' punten)';
+  }
 
   function color(i) { return 'hsl(' + Math.round((i * 137.5) % 360) + ',78%,62%)'; }
   function speedValue() { return SPEEDS.filter(function (s) { return s.id === S.speed; })[0].v; }
@@ -41,7 +98,7 @@
 
   function show(view) {
     S.view = view;
-    ['setup', 'game', 'tie', 'result'].forEach(function (v) { $(v).hidden = v !== view; });
+    ['setup', 'wheel', 'game', 'tie', 'result'].forEach(function (v) { $(v).hidden = v !== view; });
     window.scrollTo(0, 0);
   }
 
@@ -76,6 +133,25 @@
       box.appendChild(b);
     });
 
+    var mbox = $('modes'); mbox.textContent = '';
+    MODES.forEach(function (m) {
+      var b = el('button', 'op'); b.type = 'button';
+      b.appendChild(document.createTextNode(m.n)); b.appendChild(el('small', '', m.d));
+      b.setAttribute('aria-pressed', S.mode === m.id ? 'true' : 'false');
+      b.addEventListener('click', function () { S.mode = m.id; persist(); renderSetup(); });
+      mbox.appendChild(b);
+    });
+    var obox = $('orders'); obox.textContent = '';
+    ORDERS.forEach(function (o) {
+      var b = el('button', 'sp'); b.type = 'button';
+      b.appendChild(document.createTextNode(o.n)); b.appendChild(el('small', '', o.d));
+      b.setAttribute('aria-pressed', S.order === o.id ? 'true' : 'false');
+      b.addEventListener('click', function () { S.order = o.id; persist(); renderSetup(); });
+      obox.appendChild(b);
+    });
+
+    $('punish-toggle').checked = S.punish;
+
     var ok = S.names.length >= MIN_PLAYERS;
     $('start').disabled = !ok;
     $('start-note').textContent = ok ? '' : 'Voeg minstens ' + MIN_PLAYERS + ' spelers toe om te starten.';
@@ -92,14 +168,113 @@
     renderSetup(); $('name').focus();
   });
 
+  $('punish-toggle').addEventListener('change', function () { S.punish = this.checked; persist(); });
+
   $('start').addEventListener('click', function () { newGame(); });
 
   /* ---------- 2. gooien ---------- */
   function newGame() {
-    S.queue = S.names.map(function (_, i) { return i; });
+    if (S.order === 'rad') { startWheel(); return; }
+    beginRound(S.names.map(function (_, i) { return i; }));
+  }
+  function beginRound(order) {
+    S.queue = order.slice();
     S.round = 1; S.totals = {};
     startTurnRound();
   }
+
+  /* ---------- draairad: het rad kiest de volgorde ---------- */
+  var W = { remaining: [], order: [], rot: 0, spinning: false, timer: 0 };
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function startWheel() {
+    W.remaining = S.names.map(function (_, i) { return i; });
+    W.order = []; W.rot = 0; W.spinning = false;
+    show('wheel');
+    renderWheel();
+  }
+  function polar(r, deg) {
+    var a = deg * Math.PI / 180;
+    return (r * Math.sin(a)).toFixed(2) + ' ' + (-r * Math.cos(a)).toFixed(2);
+  }
+  function renderWheel() {
+    var n = W.remaining.length, svg = $('wheel-svg');
+    var done = n === 0;
+    var h = '';
+    if (n > 0) {
+      var seg = 360 / n, fs = n <= 6 ? 22 : n <= 10 ? 18 : 14, maxc = n <= 6 ? 11 : n <= 10 ? 10 : 8;
+      h += '<g id="wheel-rot" style="transform:rotate(' + W.rot + 'deg);transform-origin:0 0' + (W.rot === 0 ? ';transition:none' : '') + '">';
+      h += '<circle r="200" fill="#14110F" stroke="#F5B02E" stroke-width="6"/>';
+      W.remaining.forEach(function (pi, k) {
+        var a1 = k * seg, a2 = (k + 1) * seg, mid = (k + 0.5) * seg;
+        var path = n === 1
+          ? 'M 0 -190 A 190 190 0 1 1 -0.01 -190 Z'
+          : 'M 0 0 L ' + polar(190, a1) + ' A 190 190 0 ' + (seg > 180 ? 1 : 0) + ' 1 ' + polar(190, a2) + ' Z';
+        h += '<path d="' + path + '" fill="' + color(pi) + '" stroke="#14110F" stroke-width="3"/>';
+        var nm = S.names[pi]; if (nm.length > maxc) nm = nm.slice(0, maxc - 1) + '…';
+        nm = nm.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        h += '<g transform="rotate(' + (mid - 90) + ')"><text x="52" y="0" dominant-baseline="central" style="font:800 ' + fs + 'px Figtree,sans-serif;fill:#14110F">' + nm + '</text></g>';
+      });
+      h += '<circle r="26" fill="#14110F" stroke="#F5B02E" stroke-width="4"/><circle r="9" fill="#C8233B"/>';
+      h += '</g>';
+      h += '<polygon points="-16,-214 16,-214 0,-176" fill="#F4EAD0" stroke="#14110F" stroke-width="4" stroke-linejoin="round"/>';
+    }
+    svg.innerHTML = h;
+    svg.style.display = n > 0 ? '' : 'none';
+
+    var ol = $('order-list'); ol.textContent = '';
+    W.order.forEach(function (pi, k) {
+      var li = el('li');
+      var pos = el('span', 'pos', String(k + 1) + '.');
+      var d = el('span', 'dot', String(pi + 1)); d.style.background = color(pi); d.setAttribute('aria-hidden', 'true');
+      li.appendChild(pos); li.appendChild(d); li.appendChild(el('span', 'nm', S.names[pi]));
+      ol.appendChild(li);
+    });
+    $('wheel-spin').hidden = done; $('wheel-rest').hidden = done || n < 2;
+    $('wheel-go').hidden = !done;
+    $('wheel-spin').disabled = W.spinning; $('wheel-rest').disabled = W.spinning;
+    $('wheel-spin').textContent = W.order.length === 0 ? 'Draai!' : 'Draai voor nummer ' + (W.order.length + 1);
+    $('wheel-h').textContent = done ? 'De volgorde ligt vast' : (W.order.length === 0 ? 'Wie gooit eerst?' : 'Wie is nummer ' + (W.order.length + 1) + '?');
+    $('wheel-sub').textContent = done ? 'Geef de telefoon door aan ' + S.names[W.order[0]] + '.' : 'Tik op Draai en het rad kiest.';
+  }
+  function spinWheel() {
+    if (W.spinning || !W.remaining.length) return;
+    var n = W.remaining.length;
+    if (n === 1) { W.order.push(W.remaining.pop()); renderWheel(); return; }
+    var seg = 360 / n, k = Math.floor(Math.random() * n);
+    var jitter = (Math.random() - 0.5) * seg * 0.7;
+    var target = -((k + 0.5) * seg + jitter);
+    var cur = ((W.rot % 360) + 360) % 360;
+    var delta = ((target - cur) % 360 + 360) % 360;
+    W.rot += 360 * (5 + Math.floor(Math.random() * 3)) + delta;
+    W.spinning = true;
+    $('wheel-spin').disabled = true; $('wheel-rest').disabled = true;
+    var rot = $('wheel-rot');
+    rot.style.transition = '';
+    void rot.getBoundingClientRect();   // zorgt dat de browser de draaiing echt animeert
+    rot.style.transform = 'rotate(' + W.rot + 'deg)';
+    W.timer = setTimeout(function () {
+      var pi = W.remaining.splice(k, 1)[0];
+      W.order.push(pi);
+      if (W.remaining.length === 1) W.order.push(W.remaining.pop());
+      W.spinning = false; W.rot = 0;
+      $('wheel-live').textContent = S.names[pi] + ' is nummer ' + (W.order.indexOf(pi) + 1) + '.';
+      buzz(60);
+      renderWheel();
+    }, reduceMotion ? 300 : 3700);
+  }
+  function finishWheel() {
+    if (W.spinning) return;
+    var rest = W.remaining.slice();
+    for (var i = rest.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = rest[i]; rest[i] = rest[j]; rest[j] = t; }
+    W.order = W.order.concat(rest); W.remaining = [];
+    $('wheel-live').textContent = 'De rest is geloot.';
+    renderWheel();
+  }
+  $('wheel-spin').addEventListener('click', spinWheel);
+  $('wheel-rest').addEventListener('click', finishWheel);
+  $('wheel-go').addEventListener('click', function () { beginRound(W.order); });
+  $('wheel-back').addEventListener('click', function () { clearTimeout(W.timer); W.spinning = false; show('setup'); renderSetup(); });
   function startTurnRound() {
     S.qi = 0; S.thrown = {}; S.darts = []; S.turnDone = false; S.lastHit = null;
     show('game');
@@ -110,7 +285,7 @@
 
   function renderTurn() {
     var pi = S.queue[S.qi];
-    $('round-lbl').textContent = S.round === 1 ? 'Ronde' : 'Beslissingsworp ' + (S.round - 1);
+    $('round-lbl').textContent = (S.round === 1 ? 'Ronde' : 'Beslissingsworp ' + (S.round - 1)) + ' · ' + modeInfo().n;
     $('progress').textContent = 'Speler ' + (S.qi + 1) + ' van ' + S.queue.length;
     $('turn-dot').style.background = color(pi); $('turn-dot').textContent = String(pi + 1);
     $('who').textContent = S.names[pi];
@@ -124,12 +299,12 @@
       var go = el('button', 'btn btn-big', 'Gooi!'); go.type = 'button';
       go.addEventListener('click', doThrow);
       area.appendChild(go);
-      area.appendChild(el('p', 'note', 'Druk op Gooi als het balletje goed staat.'));
+      area.appendChild(el('p', 'note', modeInfo().hint));
     } else {
       var h = S.lastHit;
       var card = el('div', 'last pop');
       var left = el('div'); left.appendChild(el('div', 'lbl', 'Jouw worp')); left.appendChild(el('div', 'what', h.label)); left.appendChild(el('div', 'note', h.calc));
-      card.appendChild(left); card.appendChild(el('div', 'big', String(h.score)));
+      card.appendChild(left); card.appendChild(el('div', 'big', bigText(h)));
       area.appendChild(card);
       area.appendChild(el('p', 'note', DM.roastFor(h)));
       var last = S.qi === S.queue.length - 1;
@@ -144,6 +319,7 @@
     var p = S.aim.pos();
     var x = +(p.x + (Math.random() - 0.5) * 14).toFixed(1), y = +(p.y + (Math.random() - 0.5) * 14).toFixed(1);
     var h = DM.hit(x, y);
+    h.dist = Math.hypot(x - 220, y - 220);
     var pi = S.queue[S.qi];
     S.aim.stop(); S.aim = null;
     S.thrown[pi] = h; S.lastHit = h; S.turnDone = true;
@@ -163,13 +339,13 @@
 
   /* ---------- 3 en 4. gelijkspel of uitslag ---------- */
   function evaluate() {
-    var scores = S.queue.map(function (i) { return S.thrown[i].score; });
-    var min = Math.min.apply(null, scores);
-    var losers = S.queue.filter(function (i) { return S.thrown[i].score === min; });
+    var vals = S.queue.map(function (i) { return metric(S.thrown[i]); });
+    var worst = worstOf(vals);
+    var losers = S.queue.filter(function (i) { return metric(S.thrown[i]) === worst; });
     if (losers.length === 1) { showResult(losers[0]); return; }
     S.pendingTie = losers;
     $('tie-text').textContent = losers.map(function (i) { return S.names[i]; }).join(' en ') +
-      ' gooiden allemaal ' + min + ' punten. Alleen jullie gooien opnieuw, de rest is veilig.';
+      ' gooiden allemaal ' + sameText(S.thrown[losers[0]]) + '. Alleen jullie gooien opnieuw, de rest is veilig.';
     show('tie');
   }
   $('tie-go').addEventListener('click', function () {
@@ -177,28 +353,69 @@
     startTurnRound();
   });
 
+  function pickPunishment() {
+    var pool = STRAFFEN.filter(function (t) { return t !== S.currentPunish; });
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function showPunishment() {
+    var box = $('punish-box');
+    box.hidden = !S.punish;
+    if (S.punish) { $('punish-text').textContent = S.currentPunish; }
+  }
+  $('punish-again').addEventListener('click', function () {
+    S.currentPunish = pickPunishment(); showPunishment();
+    if (S.lastLoser !== null) prepareShare(S.lastLoser, S.lastList);
+  });
+
   function showResult(loser) {
     var h = S.thrown[loser];
     $('loser').textContent = S.names[loser];
-    $('loser-text').textContent = S.names[loser] + ' gooide ' + h.label + ' (' + h.score + ' punten) en trakteert.';
+    $('loser-text').textContent = resultLine(h, S.names[loser]) + ' en trakteert.';
     var list = S.names.map(function (n, i) { return { i: i, n: n, w: S.totals[i] || [] }; })
       .sort(function (a, b) {
-        var la = a.w.length ? a.w[0].score : 0, lb = b.w.length ? b.w[0].score : 0;
-        return (a.i === loser ? -1 : 0) - (b.i === loser ? -1 : 0) || la - lb;
+        var la = a.w.length ? metric(a.w[0]) : 0, lb = b.w.length ? metric(b.w[0]) : 0;
+        var dir = S.mode === 'hoogste' ? -1 : 1;   // de verliezer staat altijd bovenaan
+        return (a.i === loser ? -1 : 0) - (b.i === loser ? -1 : 0) || dir * (la - lb);
       });
     var ul = $('rank'); ul.textContent = '';
     list.forEach(function (p) {
       var first = p.w[0];
       var li = el('li'); if (p.i === loser) li.setAttribute('data-loser', '1');
       var d = el('span', 'dot', String(p.i + 1)); d.style.background = color(p.i); d.setAttribute('aria-hidden', 'true');
-      var sc = el('span', 'sc', first ? String(first.score) : '–');
-      if (first) sc.appendChild(el('small', '', first.label + (p.w.length > 1 ? ' · daarna ' + p.w.slice(1).map(function (w) { return w.score; }).join(', ') : '')));
+      var sc = el('span', 'sc', first ? bigText(first) : '–');
+      if (first) sc.appendChild(el('small', '', first.label + (p.w.length > 1 ? ' · daarna ' + p.w.slice(1).map(function (w) { return bigText(w); }).join(', ') : '')));
       li.appendChild(d); li.appendChild(el('span', 'nm', p.n)); li.appendChild(sc);
       ul.appendChild(li);
     });
+    S.lastLoser = loser; S.lastList = list;
+    S.currentPunish = S.punish ? pickPunishment() : '';
+    showPunishment();
     show('result');
     buzz(60);
     prepareShare(loser, list);
+    maybeAskReview();
+  }
+
+  /* ---------- beoordelingsvraag (alleen in de iPhone-app) ----------
+     Na de derde afgeronde ronde vragen we één keer om een beoordeling, en daarna hooguit eens per 120 dagen.
+     Het aantal rondes staat alleen op dit toestel. Apple bepaalt zelf of het venster echt verschijnt. */
+  var REVIEW_KEY = 'dartmaatje-beoordeling';
+  function maybeAskReview() {
+    try {
+      var C = window.Capacitor;
+      if (!C || !C.isNativePlatform || !C.isNativePlatform() || !C.nativePromise) return;
+      var st = JSON.parse(localStorage.getItem(REVIEW_KEY) || '{}');
+      st.rondes = (st.rondes || 0) + 1;
+      var ask = st.rondes >= 3 && (Date.now() - (st.gevraagd || 0)) > 120 * 24 * 3600 * 1000;
+      if (ask) st.gevraagd = Date.now();
+      localStorage.setItem(REVIEW_KEY, JSON.stringify(st));
+      if (ask) {
+        setTimeout(function () {
+          if (S.view !== 'result') return;   // alleen als de uitslag nog in beeld is
+          C.nativePromise('Review', 'request', {}).catch(function () {});
+        }, 2500);
+      }
+    } catch (e) { /* de beoordelingsvraag mag de app nooit storen */ }
   }
 
   /* ---------- de uitslag delen ---------- */
@@ -216,7 +433,7 @@
       ? Promise.all([document.fonts.load('56px "Bowlby One"'), document.fonts.load('800 30px "Figtree"')]).catch(function () {})
       : Promise.resolve();
     return fonts.then(function () {
-      var W = 1080, top = 548, rowH = 62, H = Math.max(1080, top + list.length * rowH + 210);
+      var W = 1080, extra = (S.punish && S.currentPunish) ? 150 : 0, top = 548 + extra, rowH = 62, H = Math.max(1080, top + list.length * rowH + 210);
       var c = document.createElement('canvas'); c.width = W; c.height = H;
       var g = c.getContext('2d');
       var DISPLAY = '"Bowlby One","Arial Black",sans-serif', BODY = '"Figtree",system-ui,sans-serif';
@@ -239,7 +456,26 @@
       g.fillText(name, 100, 322);
       var h = S.thrown[loser];
       g.fillStyle = '#14110F'; g.font = '700 32px ' + BODY;
-      g.fillText('gooide ' + h.label + ' (' + h.score + ' punten) en trakteert', 100, 398);
+      var line;
+      if (S.mode === 'dichtstbij') line = 'gooide ' + h.label + ', ' + fmtMm(h.dist) + ' van de roos';
+      else if (S.mode === 'hoogste') line = 'gooide de hoogste score: ' + h.label + ' (' + h.score + ')';
+      else line = 'gooide ' + h.label + ' (' + h.score + ' punten)';
+      line += ' en trakteert';
+      var lsize = 32; g.fillStyle = '#14110F';
+      do { g.font = '700 ' + lsize + 'px ' + BODY; lsize -= 2; } while (g.measureText(line).width > 880 && lsize > 18);
+      g.fillText(line, 100, 398);
+
+      // straf
+      if (extra) {
+        g.fillStyle = '#0B211A'; roundRect(g, 60, 470, 960, extra - 24, 28); g.fill();
+        g.strokeStyle = '#F5B02E'; g.lineWidth = 4; roundRect(g, 60, 470, 960, extra - 24, 28); g.stroke();
+        g.fillStyle = '#F5B02E'; g.font = '800 26px ' + BODY; g.textAlign = 'left'; g.fillText('DE STRAF', 90, 502);
+        g.fillStyle = '#F4EAD0'; g.font = '700 32px ' + BODY;
+        var words = S.currentPunish.split(' '), ln = '', ly = 546, lines = [];
+        words.forEach(function (w) { var t = ln ? ln + ' ' + w : w; if (g.measureText(t).width > 880 && ln) { lines.push(ln); ln = w; } else ln = t; });
+        lines.push(ln);
+        lines.slice(0, 2).forEach(function (l, k) { g.fillText(l + (k === 1 && lines.length > 2 ? '…' : ''), 90, ly + k * 40); });
+      }
 
       // alle scores
       g.fillStyle = '#F5B02E'; g.font = '800 28px ' + BODY;
@@ -254,13 +490,14 @@
         g.fillText(nm === p.n ? nm : nm + '…', 142, y + 2);
         g.textAlign = 'right';
         g.fillStyle = '#F4EAD0'; g.font = '800 32px ' + BODY;
-        g.fillText(first ? String(first.score) : '–', 990, y + 2);
-        if (first) { g.fillStyle = '#B7C9BE'; g.font = '500 24px ' + BODY; g.fillText(first.label, 890, y + 3); }
+        var main = first ? bigText(first) : '–';
+        g.fillText(main, 990, y + 2);
+        if (first) { var mw = g.measureText(main).width; g.fillStyle = '#B7C9BE'; g.font = '500 24px ' + BODY; g.fillText(first.label, 990 - mw - 24, y + 3); }
       });
 
       // voet
       g.textAlign = 'center';
-      g.fillStyle = '#B7C9BE'; g.font = '500 32px ' + BODY; g.fillText('Eén pijl per speler. De laagste score betaalt.', W / 2, H - 120);
+      g.fillStyle = '#B7C9BE'; g.font = '500 32px ' + BODY; g.fillText('Eén pijl per speler. ' + modeInfo().rule, W / 2, H - 120);
       g.fillStyle = '#F5B02E'; g.font = '44px ' + DISPLAY; g.fillText('dartmaatje.nl', W / 2, H - 62);
 
       return new Promise(function (resolve) {

@@ -71,3 +71,30 @@ button{font:inherit}
 .sheet{width:100%;max-width:520px;background:var(--panel);border:2px solid var(--line);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:12px;animation:pop .25s ease-out}
 .sheet img{width:100%;height:auto;max-height:42vh;object-fit:contain;border-radius:14px;background:var(--deep);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
 .sheet .btn{min-height:52px;font-size:18px}
+
+/* spelmodus en draairad */
+.opts{display:flex;flex-direction:column;gap:8px}
+.op{min-height:60px;padding:8px 16px;border-radius:16px;border:2px solid var(--cream);background:transparent;color:var(--cream);font:800 17px var(--body);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;text-align:left}
+.op small{font-weight:500;font-size:14px;opacity:.85}
+.op[aria-pressed="true"]{background:var(--amber);color:var(--ink);border-color:var(--ink)}
+.op:focus-visible{outline:3px solid var(--cream);outline-offset:3px}
+.wheelsvg{width:100%;max-width:420px;height:auto;display:block;margin-inline:auto}
+#wheel-rot{transition:transform 3.6s cubic-bezier(.12,.7,.1,1)}
+.orderlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.orderlist li{display:flex;align-items:center;gap:12px;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:8px 14px;min-height:48px;animation:pop .3s ease-out}
+.orderlist .pos{font-family:var(--display);font-size:20px;min-width:1.4em}
+.orderlist .nm{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:700}
+@media (prefers-reduced-motion:reduce){#wheel-rot{transition-duration:.2s}.orderlist li{animation:none}}
+
+/* aanvinkvak voor de random straf */
+.toggle{display:flex;align-items:center;gap:14px;cursor:pointer;min-height:48px}
+.toggle input{position:absolute;opacity:0;width:1px;height:1px}
+.tbox{flex:none;width:34px;height:34px;border-radius:10px;border:2px solid var(--cream);background:transparent;display:flex;align-items:center;justify-content:center}
+.toggle input:checked + .tbox{background:var(--amber);border-color:var(--ink)}
+.toggle input:checked + .tbox::after{content:'';width:10px;height:18px;border:solid var(--ink);border-width:0 4px 4px 0;transform:rotate(45deg) translate(-1px,-2px)}
+.toggle input:focus-visible + .tbox{outline:3px solid var(--cream);outline-offset:3px}
+.ttext{display:flex;flex-direction:column;gap:2px;font-size:18px}
+.ttext small{color:var(--muted);font-size:14px}
+.punish{background:var(--deep);border:2px solid var(--amber);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.punish p{margin:0;font-size:22px;font-weight:700;line-height:1.3}
+.punish .btn{min-height:44px;font-size:16px;align-self:flex-start}
